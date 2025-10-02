@@ -3,6 +3,7 @@ import { db } from '@vercel/postgres';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { unstable_noStore as noStore } from 'next/cache';
+export const dynamic = 'force-dynamic';
 
 /**
  * 데이터베이스에서 ID에 해당하는 미디어 정보를 가져옵니다.
