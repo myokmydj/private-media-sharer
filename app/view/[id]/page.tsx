@@ -3,6 +3,7 @@ import { db } from '@vercel/postgres';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import Image from 'next/image';
+import { unstable_noStore as noStore } from 'next/cache';
 import type { Metadata } from 'next';
 
 const s3Client = new S3Client({
@@ -16,6 +17,7 @@ const s3Client = new S3Client({
 
 // DB에서 미디어 정보 가져오는 함수
 async function getMediaData(id: string) {
+  noStore(); // 2. 함수 맨 위에 이 라인을 추가하여 캐싱을 비활성화합니다.
   const { rows } = await db.sql`SELECT * FROM media WHERE id = ${id} LIMIT 1;`;
   if (rows.length === 0) {
     return null;
