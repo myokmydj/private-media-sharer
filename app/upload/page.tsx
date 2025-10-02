@@ -35,8 +35,12 @@ export default function UploadPage() {
       }
 
       setGeneratedLink(data.url);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('알 수 없는 에러가 발생했습니다.');
+      }
     } finally {
       setIsLoading(false);
     }

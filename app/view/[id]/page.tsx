@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@vercel/postgres';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 
 const s3Client = new S3Client({
@@ -79,7 +80,15 @@ export default async function ViewPage({ params }: { params: { id: string } }) {
     <main className="flex min-h-screen flex-col items-center justify-center bg-black p-4">
       <div className="w-full max-w-4xl">
         {media.content_type.startsWith('image/') && (
-          <img src={mediaUrl} alt="공유된 이미지" className="max-w-full max-h-[90vh] rounded-lg" />
+          <div className="relative w-full h-[90vh]">
+            <Image 
+              src={mediaUrl} 
+              alt="공유된 이미지" 
+              fill={true}
+              style={{ objectFit: 'contain' }}
+              className="rounded-lg"
+            />
+          </div>
         )}
         {media.content_type.startsWith('video/') && (
           <video controls src={mediaUrl} className="max-w-full max-h-[90vh] rounded-lg">
