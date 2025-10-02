@@ -76,10 +76,6 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 
-/**
- * 미디어를 보여주는 페이지 컴포넌트입니다.
- * (이 부분은 DB 조회를 그대로 수행하여, 페이지 자체는 정상적으로 보이도록 합니다.)
- */
 export default async function ViewPage({ params }: { params: { id: string } }) {
   const media = await getMediaData(params.id);
 
