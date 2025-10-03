@@ -4,10 +4,10 @@ import type { Metadata } from 'next';
 import { unstable_noStore as noStore } from 'next/cache';
 import PostContent from './PostContent';
 import PasswordProtect from './PasswordProtect';
-import type { Post } from '@/types'; // Post 타입을 중앙 파일에서 가져옵니다.
+import type { Post } from '@/types';
 
-// 페이지 컴포넌트의 Props 타입을 명시적으로 정의합니다.
-interface PageProps {
+// PageProps -> ViewPageProps로 이름 변경하여 충돌 방지
+interface ViewPageProps {
   params: { id: string };
 }
 
@@ -23,7 +23,8 @@ async function getPostData(id: string): Promise<Post | null> {
   }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+// 변경된 ViewPageProps 타입을 사용
+export async function generateMetadata({ params }: ViewPageProps): Promise<Metadata> {
   const post = await getPostData(params.id);
 
   if (!post) {
@@ -84,8 +85,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-// 수정된 PageProps 타입을 사용합니다.
-export default async function ViewPage({ params }: PageProps) {
+// 변경된 ViewPageProps 타입을 사용
+export default async function ViewPage({ params }: ViewPageProps) {
   const post = await getPostData(params.id);
   if (!post) notFound();
   
