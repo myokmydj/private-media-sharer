@@ -1,13 +1,22 @@
 import { NextResponse } from 'next/server';
 import { db } from '@vercel/postgres';
 import { nanoid } from 'nanoid';
-// ▼▼▼ import 경로만 변경 ▼▼▼
 import bcrypt from 'bcryptjs';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user || !(session.user as any).id) {
+    return NextResponse.json({ error: '인증되지 않은 사용자입니다.' }, { status: 401 });
+  }
+
+  const userId = (session.user as any).id;
+
   try {
-    const { 
-      title, tags, content, thumbnailUrl, 
+    const {
+      title, tags, content, thumbnailUrl,
       isThumbnailBlurred, isContentSpoiler, isNsfw,
       selectedFont, password,
       dominantColor, textColor
@@ -26,8 +35,8 @@ export async function POST(request: Request) {
     const id = nanoid();
 
     await db.sql`
-      INSERT INTO posts (id, title, tags, content, thumbnail_url, is_thumbnail_blurred, is_content_spoiler, is_nsfw, font_family, password, dominant_color, text_color)
-      VALUES (${id}, ${title}, ${tags}, ${content}, ${thumbnailUrl}, ${isThumbnailBlurred}, ${isContentSpoiler}, ${isNsfw}, ${selectedFont}, ${hashedPassword}, ${dominantColor}, ${textColor});
+      INSERT INTO posts (id, title, tags, content, thumbnail_url, is_thumbnail_blurred, is_content_spoiler, is_nsfw, font_family, password, dominant_color, text_color, user_id)
+      VALUES (${id}, ${title}, ${tags}, ${content}, ${thumbnailUrl}, ${isThumbnailBlurred}, ${isContentSpoiler}, ${isNsfw}, ${selectedFont}, ${hashedPassword}, ${dominantColor}, ${textColor}, ${userId});
     `;
 
     const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';

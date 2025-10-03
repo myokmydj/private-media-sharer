@@ -1,0 +1,102 @@
+{
+  "Header": {
+    "welcome": "환영합니다, {name}님",
+    "myPosts": "내 포스트",
+    "writePost": "글쓰기",
+    "logout": "로그아웃",
+    "login": "로그인",
+    "signup": "회원가입"
+  },
+  "LanguageSwitcher": {
+    "changeLanguage": "언어 변경",
+    "korean": "한국어",
+    "english": "English",
+    "japanese": "日本語"
+  },
+  "HomePage": {
+    "loggedInTitle": "안녕하세요, {name}님!",
+    "loggedInSubtitle": "무엇을 공유하고 싶으신가요? 지금 바로 당신의 이야기를 만들어보세요.",
+    "newPostButton": "새 포스트 작성하기",
+    "myPostsButton": "내 보관함 가기",
+    "heroTitle": "당신만의 이야기를\n비공개로 공유하세요",
+    "heroSubtitle": "이미지와 텍스트를 조합하여 비밀번호를 설정하거나, SNS 미리보기를 꾸며 친구에게만 보여주고 싶은 특별한 링크를 만들어보세요.",
+    "startButton": "지금 시작하기",
+    "featuresTitle": "주요 기능",
+    "featurePrivacyTitle": "강력한 프라이버시",
+    "featurePrivacyDesc": "게시물에 비밀번호를 설정하여 허락된 사람만 볼 수 있도록 제어하세요.",
+    "featureSNSTitle": "매력적인 SNS 미리보기",
+    "featureSNSDesc": "링크를 공유했을 때 표시될 이미지, 제목, 내용을 마음대로 꾸밀 수 있습니다.",
+    "featureEditorTitle": "자유로운 콘텐츠 작성",
+    "featureEditorDesc": "Markdown을 지원하는 에디터로 이미지와 글을 자유롭게 배치하고 꾸며보세요.",
+    "featureShareTitle": "간편한 공유",
+    "featureShareDesc": "완성된 게시물은 단 하나의 고유 링크로 만들어져 어디든 쉽게 공유할 수 있습니다.",
+    "featureArchiveTitle": "나만의 보관함",
+    "featureArchiveDesc": "내가 만든 모든 포스트를 한눈에 보고 언제든지 수정하거나 다시 볼 수 있습니다.",
+    "featureOptionsTitle": "다양한 옵션",
+    "featureOptionsDesc": "NSFW, 스포일러, 블러 처리 등 콘텐츠에 맞는 다양한 옵션을 제공합니다.",
+    "ctaTitle": "지금 바로 시작해보세요",
+    "ctaSubtitle": "몇 번의 클릭만으로 당신의 이야기를 특별하게 만들고 공유할 수 있습니다.",
+    "ctaButton": "무료로 가입하기"
+  },
+  "MyPostsPage": {
+    "title": "내 포스트 보관함",
+    "noPosts": "아직 작성한 포스트가 없습니다.",
+    "writeFirstPost": "첫 포스트 작성하기"
+  },
+  "FormPage": {
+    "title": "제목",
+    "tags": "태그",
+    "tagsPlaceholder": "태그를 쉼표(,)로 구분하여 입력",
+    "thumbnail": "대표 이미지",
+    "thumbnailUploading": "대표 이미지 업로드 및 분석 중...",
+    "bodyImages": "본문 이미지 (여러 개 선택 가능)",
+    "bodyImagesUploading": "업로드 중...",
+    "content": "본문 (Markdown 지원)",
+    "addSpoiler": "스포일러 추가",
+    "options": "옵션",
+    "blurThumbnail": "대표 이미지 흐리게",
+    "blurThumbnailDesc": "SNS 썸네일을 블러 처리합니다.",
+    "spoilerContent": "본문 내용 스포일러",
+    "spoilerContentDesc": "SNS 본문 내용을 가립니다.",
+    "nsfw": "NSFW (민감한 콘텐츠)",
+    "nsfwDesc": "SNS 썸네일을 완전히 가립니다.",
+    "password": "비밀번호 (선택)",
+    "passwordPlaceholder": "게시물 보호용 비밀번호",
+    "passwordEditPlaceholder": "새 비밀번호 또는 빈 칸으로 두기",
+    "createLinkButton": "공유 링크 생성",
+    "creating": "생성 중...",
+    "updateButton": "수정 완료",
+    "updating": "수정 중...",
+    "successMessage": "✅ 성공! 생성된 링크:",
+    "updateSuccessMessage": "✅ 수정 성공! 공유 링크:"
+  },
+  "UploadPage": {
+    "title": "새 게시물 작성"
+  },
+  "EditPage": {
+    "title": "게시물 수정",
+    "loading": "데이터를 불러오는 중...",
+    "notFound": "게시물을 찾을 수 없습니다."
+  },
+  "LoginPage": {
+    "title": "로그인",
+    "signupSuccess": "회원가입이 성공적으로 완료되었습니다. 로그인해주세요.",
+    "email": "이메일",
+    "password": "비밀번호",
+    "loginButton": "로그인",
+    "loggingIn": "로그인 중...",
+    "noAccount": "계정이 없으신가요?",
+    "signupLink": "회원가입",
+    "error": "이메일 또는 비밀번호가 올바르지 않습니다."
+  },
+  "SignupPage": {
+    "title": "회원가입",
+    "name": "이름",
+    "email": "이메일",
+    "password": "비밀번호",
+    "signupButton": "가입하기",
+    "signingUp": "가입 중...",
+    "hasAccount": "이미 계정이 있으신가요?",
+    "loginLink": "로그인"
+  }
+}

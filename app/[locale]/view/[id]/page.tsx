@@ -6,12 +6,11 @@ import PostContent from './PostContent';
 import PasswordProtect from './PasswordProtect';
 import type { Post } from '@/types';
 
-// 별도의 Props 인터페이스를 완전히 제거합니다.
-
 async function getPostData(id: string): Promise<Post | null> {
   noStore();
   try {
-    const { rows } = await db.sql<Post>`SELECT * FROM posts WHERE id = ${id} LIMIT 1;`;
+    // user_id를 포함하여 선택합니다. Post 타입에 user_id를 추가해야 합니다.
+    const { rows } = await db.sql<Post>`SELECT *, user_id FROM posts WHERE id = ${id} LIMIT 1;`;
     if (rows.length === 0) return null;
     return rows[0];
   } catch (error) {

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Heart, EyeOff, Play } from 'lucide-react';
+// ▼▼▼ Heart, EyeOff 아이콘을 import에서 제거합니다 ▼▼▼
+import { Play } from 'lucide-react';
 import { FastAverageColor } from 'fast-average-color';
 
 interface OgPreviewProps {
@@ -39,32 +40,29 @@ export default function OgPreview({ title, tags, content, imageUrl, isBlurred, i
         if (color.isDark) {
           setTextColor('#FFFFFF');
           setTagBackgroundColor('rgba(255, 255, 255, 0.15)');
-          setPlayButtonColor(color.hex);
         } else {
           setTextColor('#000000');
           setTagBackgroundColor('rgba(0, 0, 0, 0.1)');
-          setPlayButtonColor(color.hex);
         }
+        setPlayButtonColor(color.hex); // Play 버튼 배경색은 이미지의 대표색과 동일하게 설정
       })
       .catch(e => {
         console.error("Error extracting color from image:", e);
       });
   }, [imageUrl]);
 
-  // ▼▼▼ 본문 내용에서 이미지/스포일러 태그를 제거하여 순수 텍스트만 추출 ▼▼▼
   const previewText = content
-    .replace(/!\[.*?\]\(.*?\)/g, '')   // Markdown 이미지 제거: ![alt](src)
-    .replace(/<img[^>]*>/gi, '')      // HTML 이미지 제거: <img ...>
-    .replace(/블러\[.*?\]/g, '')        // 스포일러 태그 제거: 블러[...]
-    .replace(/\n/g, ' ')              // 줄바꿈을 공백으로 변환
-    .trim();                          // 양쪽 공백 제거
-  // ▲▲▲ 여기까지 추가 ▲▲▲
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/<img[^>]*>/gi, '')
+    .replace(/블러\[.*?\]/g, '')
+    .replace(/\n/g, ' ')
+    .trim();
 
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2 text-gray-800">SNS 미리보기</h3>
       <div 
-        className="aspect-[1.91/1] w-full rounded-lg p-6 flex overflow-hidden shadow-lg transition-colors duration-500"
+        className="aspect-[1.91/1] w-full rounded-lg p-6 flex overflow-hidden shadow-lg transition-colors duration-500 font-pretendard"
         style={{ backgroundColor: backgroundColor, color: textColor }}
       >
         {/* 이미지 영역 */}
@@ -82,8 +80,11 @@ export default function OgPreview({ title, tags, content, imageUrl, isBlurred, i
             </div>
           )}
           {isNsfw && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-              <EyeOff size={64} className="text-white" />
+            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+              {/* ▼▼▼ 1. NSFW 아이콘을 굵은 텍스트로 교체 ▼▼▼ */}
+              <div className="font-black text-white text-5xl sm:text-6xl tracking-widest">
+                NSFW
+              </div>
             </div>
           )}
         </div>
@@ -91,7 +92,10 @@ export default function OgPreview({ title, tags, content, imageUrl, isBlurred, i
         {/* 텍스트 영역 */}
         <div className="w-1/2 h-full pl-6 flex flex-col justify-between">
           <div className="flex justify-end opacity-80">
-            <Heart size={32} style={{ color: textColor }}/>
+            {/* ▼▼▼ 2. 상단 하트 아이콘을 굵은 텍스트로 교체 ▼▼▼ */}
+            <div className="font-black text-2xl sm:text-3xl tracking-wider" style={{ color: textColor }}>
+              PREVIEW
+            </div>
           </div>
           <div className="flex flex-col">
             <div className="flex flex-wrap gap-2 mb-3">
@@ -107,7 +111,6 @@ export default function OgPreview({ title, tags, content, imageUrl, isBlurred, i
             <p className="text-sm opacity-70 mt-2 line-clamp-2">
               {isSpoiler 
                 ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' 
-                // ▼▼▼ content 대신 정제된 previewText를 사용 ▼▼▼
                 : (previewText || '내용 미리보기...')}
             </p>
           </div>

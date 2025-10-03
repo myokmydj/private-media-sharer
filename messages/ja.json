@@ -1,0 +1,102 @@
+{
+  "Header": {
+    "welcome": "{name}さん、ようこそ！",
+    "myPosts": "マイ投稿",
+    "writePost": "作成",
+    "logout": "ログアウト",
+    "login": "ログイン",
+    "signup": "新規登録"
+  },
+  "LanguageSwitcher": {
+    "changeLanguage": "言語",
+    "korean": "한국어",
+    "english": "English",
+    "japanese": "日本語"
+  },
+  "HomePage": {
+    "loggedInTitle": "{name}さん、ようこそ！",
+    "loggedInSubtitle": "何を共有しますか？ 今すぐあなたの物語を作り始めましょう。",
+    "newPostButton": "新規投稿を作成",
+    "myPostsButton": "保管庫へ",
+    "heroTitle": "あなただけの物語を\nプライベートに共有しましょう",
+    "heroSubtitle": "画像とテキストを組み合わせ、パスワードを設定したり、SNSプレビューをカスタマイズして、友達だけに特別なリンクを作成できます。",
+    "startButton": "今すぐ始める",
+    "featuresTitle": "主な機能",
+    "featurePrivacyTitle": "強力なプライバシー",
+    "featurePrivacyDesc": "投稿にパスワードを設定し、許可された人だけが閲覧できるように制御します。",
+    "featureSNSTitle": "魅力的なSNSプレビュー",
+    "featureSNSDesc": "リンクを共有したときに表示される画像、タイトル、説明を自由にカスタマイズできます。",
+    "featureEditorTitle": "自由なコンテンツ作成",
+    "featureEditorDesc": "Markdown対応のエディタで、画像とテキストを自由に配置し、装飾できます。",
+    "featureShareTitle": "簡単な共有",
+    "featureShareDesc": "完成した投稿は単一のユニークなリンクとして生成され、どこにでも簡単に共有できます。",
+    "featureArchiveTitle": "自分だけの保管庫",
+    "featureArchiveDesc": "作成したすべての投稿を一覧表示し、いつでも編集したり再訪したりできます。",
+    "featureOptionsTitle": "多様なオプション",
+    "featureOptionsDesc": "NSFW、ネタバレ、ぼかし処理など、コンテンツに合わせた多様なオプションを提供します。",
+    "ctaTitle": "今すぐ始めましょう",
+    "ctaSubtitle": "数回のクリックで、あなたの物語を特別に作り、共有することができます。",
+    "ctaButton": "無料で登録"
+  },
+  "MyPostsPage": {
+    "title": "マイ投稿保管庫",
+    "noPosts": "まだ作成された投稿がありません。",
+    "writeFirstPost": "最初の投稿を作成する"
+  },
+  "FormPage": {
+    "title": "タイトル",
+    "tags": "タグ",
+    "tagsPlaceholder": "タグをカンマ(,)で区切って入力",
+    "thumbnail": "サムネイル画像",
+    "thumbnailUploading": "サムネイルをアップロード・分析中...",
+    "bodyImages": "本文画像（複数選択可能）",
+    "bodyImagesUploading": "アップロード中...",
+    "content": "本文（Markdown対応）",
+    "addSpoiler": "ネタバレ追加",
+    "options": "オプション",
+    "blurThumbnail": "サムネイル画像をぼかす",
+    "blurThumbnailDesc": "SNSのサムネイルをぼかします。",
+    "spoilerContent": "本文のネタバレ",
+    "spoilerContentDesc": "SNSで本文の内容を隠します。",
+    "nsfw": "NSFW (閲覧注意)",
+    "nsfwDesc": "SNSのサムネイルを完全に隠します。",
+    "password": "パスワード（任意）",
+    "passwordPlaceholder": "投稿を保護するためのパスワード",
+    "passwordEditPlaceholder": "新しいパスワードまたは空のままにする",
+    "createLinkButton": "共有リンクを作成",
+    "creating": "作成中...",
+    "updateButton": "更新",
+    "updating": "更新中...",
+    "successMessage": "✅ 成功！生成されたリンク：",
+    "updateSuccessMessage": "✅ 更新成功！共有リンク："
+  },
+  "UploadPage": {
+    "title": "新規投稿の作成"
+  },
+  "EditPage": {
+    "title": "投稿の編集",
+    "loading": "データを読み込み中...",
+    "notFound": "投稿が見つかりません。"
+  },
+  "LoginPage": {
+    "title": "ログイン",
+    "signupSuccess": "新規登録が完了しました。ログインしてください。",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "loginButton": "ログイン",
+    "loggingIn": "ログイン中...",
+    "noAccount": "アカウントをお持ちでないですか？",
+    "signupLink": "新規登録",
+    "error": "メールアドレスまたはパスワードが正しくありません。"
+  },
+  "SignupPage": {
+    "title": "新規登録",
+    "name": "名前",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "signupButton": "登録する",
+    "signingUp": "登録中...",
+    "hasAccount": "すでにアカウントをお持ちですか？",
+    "loginLink": "ログイン"
+  }
+}

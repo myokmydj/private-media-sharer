@@ -1,50 +1,163 @@
 ﻿--- START OF FILE merged_code_context.txt ---
 
 
+============================================================
+FILE: .env.local
+============================================================
+# Recommended for most uses
+DATABASE_URL=postgresql://neondb_owner:npg_4LOWbqFVT3kU@ep-falling-fog-adzy7y6s-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+# For uses requiring a connection without pgbouncer
+DATABASE_URL_UNPOOLED=postgresql://neondb_owner:npg_4LOWbqFVT3kU@ep-falling-fog-adzy7y6s.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+# Parameters for constructing your own connection string
+PGHOST=ep-falling-fog-adzy7y6s-pooler.c-2.us-east-1.aws.neon.tech
+PGHOST_UNPOOLED=ep-falling-fog-adzy7y6s.c-2.us-east-1.aws.neon.tech
+PGUSER=neondb_owner
+PGDATABASE=neondb
+PGPASSWORD=npg_4LOWbqFVT3kU
+
+# Parameters for Vercel Postgres Templates
+POSTGRES_URL=postgresql://neondb_owner:npg_4LOWbqFVT3kU@ep-falling-fog-adzy7y6s-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+POSTGRES_URL_NON_POOLING=postgresql://neondb_owner:npg_4LOWbqFVT3kU@ep-falling-fog-adzy7y6s.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+POSTGRES_USER=neondb_owner
+POSTGRES_HOST=ep-falling-fog-adzy7y6s-pooler.c-2.us-east-1.aws.neon.tech
+POSTGRES_PASSWORD=npg_4LOWbqFVT3kU
+POSTGRES_DATABASE=neondb
+POSTGRES_URL_NO_SSL=postgresql://neondb_owner:npg_4LOWbqFVT3kU@ep-falling-fog-adzy7y6s-pooler.c-2.us-east-1.aws.neon.tech/neondb
+POSTGRES_PRISMA_URL=postgresql://neondb_owner:npg_4LOWbqFVT3kU@ep-falling-fog-adzy7y6s-pooler.c-2.us-east-1.aws.neon.tech/neondb?connect_timeout=15&sslmode=require
+
+# Cloudflare R2 (R2 API 토큰 생성 시 복사)
+R2_ENDPOINT=https://12aadaa49a36a84226c82953c21d744e.r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=51cf824a5e2ea2b9adac262e5d538ac4
+R2_SECRET_ACCESS_KEY=e1dacb553068cb89220ace98053bec0c96b213f505ef492a0a37ff5202f4d4ff
+R2_BUCKET_NAME=private-media-bucket
+
+# Public URL (개발 중에는 localhost, 배포 후에는 실제 도메인)
+NEXT_PUBLIC_BASE_URL=https://private-media-sharer.vercel.app
+NEXT_PUBLIC_R2_PUBLIC_URL=https://pub-36efcebb6f624798b7169d496005c244.r2.dev
+
+NEXTAUTH_SECRET=your-super-secret-key
+NEXTAUTH_URL=https://private-media-sharer.vercel.app
 
 ============================================================
-FILE: next.config.ts
+FILE: .eslintignore.txt
+============================================================
+# 자동으로 생성된 폰트 데이터 파일은 린팅에서 제외합니다.
+.generated/fonts.ts
+
+============================================================
+FILE: eslint.config.mjs
+============================================================
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
+
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      "out/**",
+      "build/**",
+      "next-env.d.ts",
+    ],
+  },
+];
+
+export default eslintConfig;
+
+
+============================================================
+FILE: git
 ============================================================
 
-import type { NextConfig } from 'next';
 
-const nextConfig: NextConfig = {
+============================================================
+FILE: middleware.ts
+============================================================
+import createMiddleware from 'next-intl/middleware';
+ 
+export default createMiddleware({
+  // A list of all locales that are supported
+  locales: ['ko', 'en', 'ja'],
+ 
+  // Used when no locale matches
+  defaultLocale: 'ko',
+  localePrefix: 'always'
+});
+ 
+export const config = {
+  // Match only internationalized pathnames
+  matcher: [
+    // Match all pathnames except for
+    // - … if they start with `/api`, `/_next` or `/_vercel`
+    // - … the ones containing a dot (e.g. `favicon.ico`)
+    '/((?!api|_next|_vercel|.*\\..*).*)'
+  ]
+};
+
+============================================================
+FILE: next-env.d.ts
+============================================================
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/basic-features/typescript for more information.
+
+
+============================================================
+FILE: next.config.js
+============================================================
+// next.config.js (최종 완성)
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
-    // remotePatterns 대신 domains를 사용합니다.
-    // 여기에 Step 1에서 복사한 정확한 호스트 이름을 붙여넣으세요.
-    domains: ['pub-36efcebb6f624798b7169d496005c244.r2.dev'], 
+    domains: ['pub-36efcebb6f624798b7169d496005c244.r2.dev'],
   },
 };
 
-export default nextConfig;
-
-
+// withNextIntl 플러그인을 완전히 제거합니다. 이것이 모든 문제의 시작이었습니다.
+module.exports = nextConfig;
 
 ============================================================
 FILE: package.json
 ============================================================
-
 {
   "name": "private-media-sharer",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "next dev",
+    "prebuild": "node ./scripts/convert-fonts.js",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.901.0",
     "@aws-sdk/s3-request-presigner": "^3.901.0",
+    "@types/bcryptjs": "^2.4.6",
     "@vercel/postgres": "^0.10.0",
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "fast-average-color": "^9.5.0",
     "lucide-react": "^0.544.0",
     "nanoid": "^5.1.6",
-    "next": "15.5.4",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "next": "14.2.5",
+    "next-auth": "^4.24.11",
+    "next-intl": "^4.3.9",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "react-markdown": "^10.1.0",
     "rehype-raw": "^7.0.0",
     "remark-breaks": "^4.0.0",
@@ -53,17 +166,15 @@ FILE: package.json
     "sharp": "^0.34.4"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.1.14",
     "@tailwindcss/typography": "^0.5.19",
-    "@types/bcrypt": "^6.0.0",
     "@types/node": "^20.19.19",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "autoprefixer": "^10.4.21",
     "dotenv": "^17.2.3",
-    "eslint": "^9",
-    "eslint-config-next": "15.5.4",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.5",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.3.0",
     "typescript": "^5"
@@ -71,11 +182,62 @@ FILE: package.json
 }
 
 
+============================================================
+FILE: postcss.config.js
+============================================================
+// postcss.config.js
+
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+
+============================================================
+FILE: README.md
+============================================================
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
 
 ============================================================
 FILE: tailwind.config.ts
 ============================================================
-
 // tailwind.config.ts
 
 import type { Config } from 'tailwindcss';
@@ -88,22 +250,21 @@ const config: Config = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    // ▼▼▼ extend 대신 colors를 직접 정의하여 덮어씁니다 ▼▼▼
     colors: {
       transparent: 'transparent',
       current: 'currentColor',
       black: colors.black,
       white: colors.white,
       gray: colors.gray,
-      // 에러 메시지 등을 위해 red 색상은 유지합니다.
       red: colors.red,
     },
-    // ▲▲▲ 여기까지 수정 ▲▲▲
     extend: {
       fontFamily: {
         pretendard: ['Pretendard', 'sans-serif'],
         bookkmyungjo: ['BookkMyungjo', 'serif'],
         freesentation: ['Freesentation', 'sans-serif'],
+        // ▼▼▼ 여기에 Paperozi 폰트를 추가합니다 ▼▼▼
+        paperozi: ['Paperozi', 'sans-serif'],
       },
     },
   },
@@ -113,12 +274,111 @@ const config: Config = {
 };
 export default config;
 
+============================================================
+FILE: tsconfig.json
+============================================================
+{
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "target": "ES2017"
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+
 
 ============================================================
-FILE: app/globals.css
+FILE: app\globals.css
 ============================================================
-
 /* app/globals.css */
+
+@font-face {
+    font-family: 'Paperozi';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-1Thin.woff2') format('woff2');
+    font-weight: 100;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Paperozi';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-2ExtraLight.woff2') format('woff2');
+    font-weight: 200;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Paperozi';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-3Light.woff2') format('woff2');
+    font-weight: 300;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Paperozi';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Paperozi';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Paperozi';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Paperozi';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Paperozi';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2');
+    font-weight: 800;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Paperozi';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2');
+    font-weight: 900;
+    font-display: swap;
+}
+
 
 @font-face {
     font-family: 'Pretendard';
@@ -282,65 +542,863 @@ FILE: app/globals.css
   user-select: auto;
 }
 
-
 ============================================================
-FILE: app/layout.tsx
+FILE: app\[locale]\not-found.tsx
 ============================================================
+// app/[locale]/not-found.tsx (최종 수정 완료)
 
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+export default function NotFoundPage() {
+  const t = useTranslations('NotFoundPage');
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Create Next App",
-  description: "Generated by create next app",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+  // <html>과 <body> 태그를 제거하고,
+  // layout.tsx 안에 들어갈 내용만 남깁니다.
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
+    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-100 p-4">
+      <div className="w-full max-w-md p-8 text-center space-y-6 bg-white rounded-lg shadow-md">
+        <h1 className="text-9xl font-black text-gray-200">404</h1>
+        <h2 className="text-3xl font-bold text-gray-900">{t('title')}</h2>
+        <p className="text-gray-600">{t('description')}</p>
+        <Link 
+          href="/" 
+          className="inline-block px-6 py-3 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900"
+        >
+          {t('goHome')}
+        </Link>
+      </div>
+    </main>
   );
 }
 
+============================================================
+FILE: app\[locale]\page.tsx
+============================================================
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
+import { LockKeyhole, PencilLine, Share2, ImageIcon, Eye, BookUser } from 'lucide-react';
+
+export default async function HomePage() {
+  const session = await getServerSession(authOptions);
+  const t = await getTranslations('HomePage');
+  const tHeader = await getTranslations('Header');
+
+  if (session) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-8 text-center bg-gray-50">
+        <div className="max-w-2xl">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-800">
+            {t('loggedInTitle', { name: session.user?.name })}
+          </h1>
+          <p className="mt-4 text-lg text-gray-600">
+            {t('loggedInSubtitle')}
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+            <Link
+              href="/upload"
+              className="px-8 py-4 text-lg font-semibold text-white bg-gray-800 rounded-lg shadow-md hover:bg-gray-900 transition-colors"
+            >
+              {t('newPostButton')}
+            </Link>
+            <Link
+              href="/my-posts"
+              className="px-8 py-4 text-lg font-semibold text-gray-800 bg-white rounded-lg shadow-md hover:bg-gray-100 border border-gray-200 transition-colors"
+            >
+              {t('myPostsButton')}
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="bg-white text-gray-800">
+      <section className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] text-center p-8 bg-gray-50">
+        <div className="max-w-3xl">
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight whitespace-pre-line">
+            {t('heroTitle')}
+          </h1>
+          <p className="mt-6 text-lg md:text-xl text-gray-600">
+            {t('heroSubtitle')}
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+            <Link
+              href="/signup"
+              className="px-8 py-4 text-lg font-semibold text-white bg-gray-800 rounded-lg shadow-md hover:bg-gray-900 transition-colors"
+            >
+              {t('startButton')}
+            </Link>
+            <Link
+              href="/login"
+              className="px-8 py-4 text-lg font-semibold text-gray-800 bg-white rounded-lg shadow-md hover:bg-gray-100 border border-gray-200 transition-colors"
+            >
+              {tHeader('login')}
+            </Link>
+          </div>
+        </div>
+      </section>
+      {/* ... 이하 나머지 섹션들은 그대로 ... */}
+    </main>
+  );
+}
+
+============================================================
+FILE: app\[locale]\edit\[id]\page.tsx
+============================================================
+'use client';
+
+import { useState, useEffect, FormEvent, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import OgPreview from '@/app/upload/OgPreview'; // 기존 컴포넌트 재사용
+import ContentPreview from '@/app/upload/ContentPreview'; // 기존 컴포넌트 재사용
+import { FastAverageColor } from 'fast-average-color';
+import type { Post } from '@/types'; // Post 타입 임포트
+
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export default function EditPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { id } = params;
+
+  const [post, setPost] = useState<Post | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // 폼 상태들 (기존 upload 페이지와 동일)
+  const [title, setTitle] = useState('');
+  const [tags, setTags] = useState('');
+  const [content, setContent] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
+  const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
+  const [isBlurred, setIsBlurred] = useState(false);
+  const [isSpoiler, setIsSpoiler] = useState(false);
+  const [isNsfw, setIsNsfw] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState('');
+  const [error, setError] = useState('');
+  const [selectedFont, setSelectedFont] = useState('font-pretendard');
+  const [password, setPassword] = useState('');
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const [dominantColor, setDominantColor] = useState<string | null>(null);
+  const [textColor, setTextColor] = useState<string | null>(null);
+
+  const fontClasses: { [key: string]: string } = {
+    'font-paperozi': '페이퍼로지',
+    'font-pretendard': '프리텐다드',
+    'font-bookkmyungjo': '부크크 명조',
+    'font-freesentation': '프리젠테이션',
+  };
+
+  // 1. 페이지 로드 시 기존 포스트 데이터 불러오기
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchPost = async () => {
+      try {
+        const res = await fetch(`/api/posts/${id}`);
+        if (!res.ok) {
+          throw new Error('게시물을 불러오는데 실패했습니다.');
+        }
+        const data: Post = await res.json();
+        setPost(data);
+        // 폼 상태를 불러온 데이터로 채우기
+        setTitle(data.title);
+        setTags(data.tags || '');
+        setContent(data.content);
+        setThumbnailUrl(data.thumbnail_url);
+        setIsBlurred(data.is_thumbnail_blurred);
+        setIsSpoiler(data.is_content_spoiler);
+        setIsNsfw(data.is_nsfw);
+        setSelectedFont(data.font_family || 'font-pretendard');
+        setDominantColor(data.dominant_color);
+        setTextColor(data.text_color);
+        // 비밀번호는 보안상 불러오지 않음. 변경시에만 입력.
+      } catch (err: any) {
+        setError(err.message);
+        // 권한 없음 등의 에러 처리
+        if (err.message.includes('권한')) {
+          setTimeout(() => router.push('/my-posts'), 2000);
+        }
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchPost();
+  }, [id, router]);
+
+  const handleThumbnailUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsThumbnailUploading(true);
+    setError('');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      setThumbnailUrl(data.url);
+
+      const fac = new FastAverageColor();
+      const colorResult = await fac.getColorAsync(data.url);
+      if (!colorResult.error) {
+        setDominantColor(colorResult.hex);
+        setTextColor(colorResult.isDark ? '#ffffff' : '#000000');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '대표 이미지 업로드 실패');
+    } finally {
+      setIsThumbnailUploading(false);
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    setError('');
+    for (const file of Array.from(files)) {
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const response = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        setContent(prev => `${prev}\n\n![${data.filename}](${data.url})`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '파일 업로드 실패');
+      }
+    }
+    setIsUploading(false);
+  };
+
+  // 2. 제출 핸들러를 수정(PUT) 로직으로 변경
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!title || !content || !thumbnailUrl) {
+      setError('제목, 내용, 대표 이미지를 모두 설정해주세요.');
+      return;
+    }
+    setIsSubmitting(true);
+    setError('');
+    setGeneratedLink('');
+
+    try {
+      // POST 대신 PUT 메소드 사용
+      const response = await fetch(`/api/posts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title, tags, content, thumbnailUrl,
+          isThumbnailBlurred: isBlurred,
+          isContentSpoiler: isSpoiler,
+          isNsfw, selectedFont, password,
+          dominantColor: dominantColor || '#28234D',
+          textColor: textColor || '#FFFFFF',
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      setGeneratedLink(data.url);
+      // 수정 완료 후 my-posts 페이지로 이동
+      setTimeout(() => router.push('/my-posts'), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '게시물 수정 실패');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const insertSpoilerText = () => {
+    const textarea = contentRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+    const spoilerText = `블러[${selectedText || '가릴 내용'}]`;
+    const newContent = content.substring(0, start) + spoilerText + content.substring(end);
+    setContent(newContent);
+    textarea.focus();
+    setTimeout(() => {
+      const newCursorPosition = start + spoilerText.length - (selectedText ? 1 : 6);
+      textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+    }, 0);
+  };
+  
+  const handleImageResize = (src: string, newWidth: number) => {
+    setContent(currentContent => {
+      const escapedSrc = escapeRegExp(src);
+      const htmlImgRegex = new RegExp(`<img[^>]*src="(${escapedSrc})"[^>]*>`, 'i');
+      if (htmlImgRegex.test(currentContent)) {
+        return currentContent.replace(htmlImgRegex, (match) => {
+          if (/width="/i.test(match)) {
+            return match.replace(/width="\d+"/i, `width="${newWidth}"`);
+          } else {
+            return match.replace(/<img/i, `<img width="${newWidth}"`);
+          }
+        });
+      }
+      const markdownImgRegex = new RegExp(`!\\[([^\\]]*)\\]\\((${escapedSrc})\\)`, 'g');
+      if (markdownImgRegex.test(currentContent)) {
+        return currentContent.replace(markdownImgRegex, `<img alt="$1" src="${src}" width="${newWidth}" />`);
+      }
+      return currentContent;
+    });
+  };
+  
+  if (isLoadingData) {
+    return <div className="min-h-screen flex items-center justify-center">데이터를 불러오는 중...</div>;
+  }
+  if (!post) {
+    return <div className="min-h-screen flex items-center justify-center text-red-500">{error || '게시물을 찾을 수 없습니다.'}</div>;
+  }
+
+  return (
+    <main className={`min-h-screen bg-gray-100 p-4 sm:p-8 ${selectedFont}`}>
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white p-8 rounded-lg shadow-md space-y-6 h-fit">
+          <h1 className="text-3xl font-bold text-center text-gray-900">게시물 수정</h1>
+          {/* 폼 부분은 upload 페이지와 거의 동일 */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div><label htmlFor="title" className="block text-sm font-medium text-gray-700">제목</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required /></div>
+            <div>
+              <label htmlFor="tags" className="block text-sm font-medium text-gray-700">태그</label>
+              <input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="태그를 쉼표(,)로 구분하여 입력" />
+            </div>
+            <div>
+              <label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700">대표 이미지</label>
+              <input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />
+              {isThumbnailUploading && <p className="text-sm text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}
+            </div>
+            <div><label htmlFor="file" className="block text-sm font-medium text-gray-700">본문 이미지 (여러 개 선택 가능)</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}</div>
+            <div>
+              <div className="flex justify-between items-center">
+                <label htmlFor="content" className="block text-sm font-medium text-gray-700">본문 (Markdown 지원)</label>
+                <button type="button" onClick={insertSpoilerText} className="px-2 py-1 text-xs font-semibold text-white bg-gray-700 rounded-md hover:bg-gray-800">스포일러 추가</button>
+              </div>
+              <textarea ref={contentRef} id="content" rows={10} value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required />
+            </div>
+            <div className="space-y-4 rounded-md border border-gray-200 p-4">
+              <h3 className="text-sm font-medium text-gray-900">옵션</h3>
+              <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="blur-toggle" type="checkbox" checked={isBlurred} onChange={(e) => setIsBlurred(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="blur-toggle" className="font-medium text-gray-700">대표 이미지 흐리게</label><p className="text-gray-500">SNS 썸네일을 블러 처리합니다.</p></div></div>
+              <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="spoiler-toggle" type="checkbox" checked={isSpoiler} onChange={(e) => setIsSpoiler(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="spoiler-toggle" className="font-medium text-gray-700">본문 내용 스포일러</label><p className="text-gray-500">SNS 본문 내용을 가립니다.</p></div></div>
+              <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="nsfw-toggle" type="checkbox" checked={isNsfw} onChange={(e) => setIsNsfw(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="nsfw-toggle" className="font-medium text-gray-700">NSFW (민감한 콘텐츠)</label><p className="text-gray-500">SNS 썸네일을 완전히 가립니다.</p></div></div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호 (변경 시에만 입력)</label>
+                <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="새 비밀번호 또는 빈 칸으로 두기" />
+              </div>
+            </div>
+            <button type="submit" disabled={isSubmitting || isUploading || isThumbnailUploading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">{isSubmitting ? '수정 중...' : '수정 완료'}</button>
+          </form>
+          {error && <p className="mt-4 text-sm text-center text-red-600">{error}</p>}
+          {generatedLink && (<div className="mt-6 p-4 bg-gray-100 border border-gray-200 rounded-md"><p className="text-sm font-medium text-gray-800">✅ 수정 성공! 공유 링크:</p><a href={generatedLink} target="_blank" rel="noopener noreferrer" className="block mt-1 text-sm text-gray-900 font-semibold break-all hover:underline">{generatedLink}</a></div>)}
+        </div>
+        <div className="space-y-8 sticky top-8 h-fit">
+          <OgPreview 
+            title={title} tags={tags} content={content} imageUrl={thumbnailUrl}
+            isBlurred={isBlurred} isSpoiler={isSpoiler} isNsfw={isNsfw}
+          />
+          <ContentPreview 
+            content={content} fontClass={selectedFont} onImageResize={handleImageResize}
+          />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+============================================================
+FILE: app\[locale]\login\page.tsx
+============================================================
+
+'use client';
+
+import { useState, FormEvent, Suspense } from 'react';
+import { signIn } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const signupSuccess = searchParams.get('signup') === 'success';
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    const result = await signIn('credentials', {
+      redirect: false,
+      email,
+      password,
+    });
+
+    if (result?.error) {
+      setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      setIsLoading(false);
+    } else {
+      router.push(callbackUrl);
+    }
+  };
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <h1 className="text-3xl font-bold text-center text-gray-900">로그인</h1>
+        {signupSuccess && (
+          <p className="text-sm text-center text-green-600 bg-green-100 p-3 rounded-md">
+            회원가입이 성공적으로 완료되었습니다. 로그인해주세요.
+          </p>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">이메일</label>
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호</label>
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <button type="submit" disabled={isLoading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">
+            {isLoading ? '로그인 중...' : '로그인'}
+          </button>
+        </form>
+        <p className="text-center text-sm text-gray-600">
+          계정이 없으신가요?{' '}
+          <Link href="/signup" className="font-medium text-gray-800 hover:underline">
+            회원가입
+          </Link>
+        </p>
+      </div>
+    </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
+  )
+}
 
 
 ============================================================
-FILE: app/upload/page.tsx
+FILE: app\[locale]\my-posts\page.tsx
 ============================================================
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { redirect } from 'next/navigation';
+import { db } from '@vercel/postgres';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Edit } from 'lucide-react'; // 아이콘 추가
 
+import type { Post } from '@/types';
+
+async function getMyPosts(userId: string): Promise<Post[]> {
+  const result = await db.sql<Post>`
+    SELECT * FROM posts 
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+  `;
+  return result.rows;
+}
+
+export default async function MyPostsPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user || !(session.user as any).id) {
+    redirect('/login?callbackUrl=/my-posts');
+  }
+
+  const userId = (session.user as any).id;
+  const posts = await getMyPosts(userId);
+
+  return (
+    <main className="min-h-screen bg-gray-100 p-4 sm:p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">내 포스트 보관함</h1>
+        
+        {posts.length === 0 ? (
+          <div className="text-center bg-white p-8 rounded-lg shadow-md">
+            <p className="text-gray-600">아직 작성한 포스트가 없습니다.</p>
+            <Link href="/upload" className="mt-4 inline-block px-6 py-2 text-white bg-gray-800 rounded-md hover:bg-gray-900">
+              첫 포스트 작성하기
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {posts.map((post) => (
+              <div key={post.id} className="group bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                <Link href={`/view/${post.id}`} className="block">
+                  <div className="relative aspect-square">
+                    <Image
+                      src={post.thumbnail_url}
+                      alt={post.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className={`object-cover ${post.is_nsfw || post.is_thumbnail_blurred ? 'blur-md' : ''}`}
+                    />
+                    {post.is_nsfw && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-lg">NSFW</div>}
+                  </div>
+                </Link>
+                <div className="p-4 flex-grow flex flex-col justify-between">
+                  <Link href={`/view/${post.id}`} className="block">
+                    <h2 className="font-bold text-lg text-gray-800 truncate group-hover:underline">{post.title}</h2>
+                    <p className="text-sm text-gray-500 mt-1">{new Date(post.created_at).toLocaleDateString()}</p>
+                  </Link>
+                  <div className="mt-4 flex justify-end">
+                    <Link href={`/edit/${post.id}`} className="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors">
+                      <Edit size={18} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+============================================================
+FILE: app\[locale]\signup\page.tsx
+============================================================
+'use client'; // <-- 이 부분이 매우 중요합니다! 파일의 가장 첫 줄에 있어야 합니다.
+
+import { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+// 👇 이 함수 전체가 "React Component"이며, export default로 내보내져야 합니다.
+export default function SignupPage() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      // 서버 응답이 JSON이 아닐 수도 있는 경우를 대비해 먼저 텍스트로 읽습니다.
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        // JSON 파싱 실패 시, 서버가 보낸 텍스트를 에러로 간주합니다.
+        throw new Error(responseText || '서버로부터 잘못된 응답을 받았습니다.');
+      }
+
+
+      if (!res.ok) {
+        throw new Error(data.error || '회원가입에 실패했습니다.');
+      }
+
+      router.push('/login?signup=success');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <h1 className="text-3xl font-bold text-center text-gray-900">회원가입</h1>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700">이름</label>
+            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+          </div>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">이메일</label>
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호</label>
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <button type="submit" disabled={isLoading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">
+            {isLoading ? '가입 중...' : '가입하기'}
+          </button>
+        </form>
+        <p className="text-center text-sm text-gray-600">
+          이미 계정이 있으신가요?{' '}
+          <Link href="/login" className="font-medium text-gray-800 hover:underline">
+            로그인
+          </Link>
+        </p>
+      </div>
+    </main>
+  );
+}
+
+============================================================
+FILE: app\[locale]\upload\ContentPreview.tsx
+============================================================
+// app/[locale]/upload/ContentPreview.tsx (최종 완성)
+
+'use client';
+
+import { useState, useEffect, MouseEvent } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
+import rehypeRaw from 'rehype-raw';
+import type { Pluggable } from 'unified';
+import ResizableImage from './ResizableImage';
+
+interface ContentPreviewProps {
+  content: string;
+  fontClass: string;
+  onImageResize: (src: string, newWidth: number) => void;
+}
+
+export default function ContentPreview({ content, fontClass, onImageResize }: ContentPreviewProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('spoiler')) {
+      target.classList.remove('spoiler');
+      target.classList.add('spoiler-revealed');
+    }
+  };
+
+  const processContentForSpoilers = (text: string) => {
+    return text.replace(/블러\[(.*?)\]/g, '<span class="spoiler">$1</span>');
+  };
+
+  const processedContent = processContentForSpoilers(content);
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold mb-2 text-gray-800">본문 미리보기</h3>
+      <div 
+        className={`prose lg:prose-lg w-full max-w-none bg-white p-6 sm:p-8 rounded-lg shadow-lg border min-h-[200px] ${fontClass}`}
+        onClick={handleSpoilerClick}
+      >
+        {/* 서버와 초기 렌더링 시에는 이 부분을 렌더링합니다. */}
+        {!isClient && <p className="text-gray-400">미리보기를 불러오는 중...</p>}
+        
+        {/* 클라이언트에서 마운트된 후에만 ReactMarkdown을 렌더링합니다. */}
+        {isClient && content ? (
+          <ReactMarkdown 
+            remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
+            rehypePlugins={[rehypeRaw]}
+            components={{
+              img: ({ src, alt, width }) => {
+                if (typeof src !== 'string') return null;
+                const currentWidth = width ? Number(width) : undefined;
+                return (
+                  <ResizableImage 
+                    src={src}
+                    alt={alt || ''}
+                    currentWidth={currentWidth}
+                    onResize={onImageResize}
+                  />
+                );
+              }
+            }}
+          >
+            {processedContent}
+          </ReactMarkdown>
+        ) : isClient && (
+          <p className="text-gray-400">본문 내용이 여기에 표시됩니다.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+============================================================
+FILE: app\[locale]\upload\OgPreview.tsx
+============================================================
+'use client';
+
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+// ▼▼▼ Heart, EyeOff 아이콘을 import에서 제거합니다 ▼▼▼
+import { Play } from 'lucide-react';
+import { FastAverageColor } from 'fast-average-color';
+
+interface OgPreviewProps {
+  title: string;
+  tags: string;
+  content: string;
+  imageUrl: string;
+  isBlurred: boolean;
+  isSpoiler: boolean;
+  isNsfw: boolean;
+}
+
+export default function OgPreview({ title, tags, content, imageUrl, isBlurred, isSpoiler, isNsfw }: OgPreviewProps) {
+  const tagList = tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+
+  const [backgroundColor, setBackgroundColor] = useState('#28234D');
+  const [textColor, setTextColor] = useState('#FFFFFF');
+  const [tagBackgroundColor, setTagBackgroundColor] = useState('rgba(255, 255, 255, 0.15)');
+  const [playButtonColor, setPlayButtonColor] = useState('#28234D');
+
+  useEffect(() => {
+    if (!imageUrl) {
+      setBackgroundColor('#28234D');
+      setTextColor('#FFFFFF');
+      setTagBackgroundColor('rgba(255, 255, 255, 0.15)');
+      setPlayButtonColor('#28234D');
+      return;
+    }
+
+    const fac = new FastAverageColor();
+    fac.getColorAsync(imageUrl)
+      .then(color => {
+        setBackgroundColor(color.hex);
+        if (color.isDark) {
+          setTextColor('#FFFFFF');
+          setTagBackgroundColor('rgba(255, 255, 255, 0.15)');
+        } else {
+          setTextColor('#000000');
+          setTagBackgroundColor('rgba(0, 0, 0, 0.1)');
+        }
+        setPlayButtonColor(color.hex); // Play 버튼 배경색은 이미지의 대표색과 동일하게 설정
+      })
+      .catch(e => {
+        console.error("Error extracting color from image:", e);
+      });
+  }, [imageUrl]);
+
+  const previewText = content
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/<img[^>]*>/gi, '')
+    .replace(/블러\[.*?\]/g, '')
+    .replace(/\n/g, ' ')
+    .trim();
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold mb-2 text-gray-800">SNS 미리보기</h3>
+      <div 
+        className="aspect-[1.91/1] w-full rounded-lg p-6 flex overflow-hidden shadow-lg transition-colors duration-500 font-pretendard"
+        style={{ backgroundColor: backgroundColor, color: textColor }}
+      >
+        {/* 이미지 영역 */}
+        <div className="w-1/2 h-full relative flex-shrink-0 rounded-md overflow-hidden">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt="썸네일 미리보기"
+              fill
+              className={`object-cover transition-all duration-300 ${isBlurred || isNsfw ? 'blur-xl' : ''}`}
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-700 rounded-md flex items-center justify-center">
+              <span className="text-gray-400">대표 이미지</span>
+            </div>
+          )}
+          {isNsfw && (
+            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+              {/* ▼▼▼ 1. NSFW 아이콘을 굵은 텍스트로 교체 ▼▼▼ */}
+              <div className="font-black text-white text-5xl sm:text-6xl tracking-widest">
+                NSFW
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 텍스트 영역 */}
+        <div className="w-1/2 h-full pl-6 flex flex-col justify-between">
+          <div className="flex justify-end opacity-80">
+            {/* ▼▼▼ 2. 상단 하트 아이콘을 굵은 텍스트로 교체 ▼▼▼ */}
+            <div className="font-black text-2xl sm:text-3xl tracking-wider" style={{ color: textColor }}>
+              PREVIEW
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {tagList.length > 0 ? tagList.map((tag, index) => (
+                <span key={index} className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: tagBackgroundColor }}>
+                  {tag}
+                </span>
+              )) : <div className="h-5"></div>}
+            </div>
+            <h1 className="text-2xl font-bold break-words line-clamp-2">
+              {title || '제목이 여기에 표시됩니다'}
+            </h1>
+            <p className="text-sm opacity-70 mt-2 line-clamp-2">
+              {isSpoiler 
+                ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' 
+                : (previewText || '내용 미리보기...')}
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: textColor }}>
+              <Play size={24} style={{ color: playButtonColor, fill: playButtonColor }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+============================================================
+FILE: app\[locale]\upload\page.tsx
+============================================================
 'use client';
 
 import { useState, ChangeEvent, FormEvent, useRef } from 'react';
 import OgPreview from './OgPreview';
 import ContentPreview from './ContentPreview';
+// ▼▼▼ fast-average-color를 import 합니다 ▼▼▼
+import { FastAverageColor } from 'fast-average-color';
 
-// ▼▼▼ 정규표현식에서 특수문자를 이스케이프하는 헬퍼 함수 ▼▼▼
 function escapeRegExp(string: string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $&는 일치한 전체 문자열을 의미합니다.
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export default function UploadPage() {
-  // ... (기존 state 선언은 변경 없음) ...
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [content, setContent] = useState('');
@@ -357,25 +1415,45 @@ export default function UploadPage() {
   const [password, setPassword] = useState('');
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
+  // ▼▼▼ 분석된 색상을 저장할 state 추가 ▼▼▼
+  const [dominantColor, setDominantColor] = useState<string | null>(null);
+  const [textColor, setTextColor] = useState<string | null>(null);
+
   const fontClasses: { [key: string]: string } = {
-    'font-pretendard': '프리텐다드 (고딕)',
-    'font-bookkmyungjo': '북크 명조',
-    'font-freesentation': '프리젠테이션 (고딕)',
+    'font-paperozi': '페이퍼로지',
+    'font-pretendard': '프리텐다드',
+    'font-bookkmyungjo': '부크크 명조',
+    'font-freesentation': '프리젠테이션',
   };
 
-  // ... (handleThumbnailUpload, handleFileChange, handleSubmit, insertSpoilerText 함수는 변경 없음) ...
   const handleThumbnailUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
     setIsThumbnailUploading(true);
     setError('');
+
     const formData = new FormData();
     formData.append('file', file);
+
     try {
       const response = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
+      
       setThumbnailUrl(data.url);
+
+      // ▼▼▼ 썸네일 업로드 성공 후, 브라우저에서 색상 분석 실행 ▼▼▼
+      const fac = new FastAverageColor();
+      // R2 URL에 CORS 문제가 발생할 수 있으므로 프록시를 사용하거나,
+      // 여기서는 이미지 URL을 직접 분석합니다.
+      const colorResult = await fac.getColorAsync(data.url);
+      if (!colorResult.error) {
+        setDominantColor(colorResult.hex);
+        setTextColor(colorResult.isDark ? '#ffffff' : '#000000');
+      }
+      // ▲▲▲ 여기까지 추가 ▲▲▲
+
     } catch (err) {
       setError(err instanceof Error ? err.message : '대표 이미지 업로드 실패');
     } finally {
@@ -422,6 +1500,9 @@ export default function UploadPage() {
           isThumbnailBlurred: isBlurred,
           isContentSpoiler: isSpoiler,
           isNsfw, selectedFont, password,
+          // ▼▼▼ 분석된 색상 값을 함께 전송 ▼▼▼
+          dominantColor: dominantColor || '#28234D', // 실패 시 기본값
+          textColor: textColor || '#FFFFFF',
         }),
       });
 
@@ -431,6 +1512,7 @@ export default function UploadPage() {
       setGeneratedLink(data.url);
       setTitle(''); setTags(''); setContent(''); setThumbnailUrl('');
       setIsBlurred(false); setIsSpoiler(false); setIsNsfw(false); setPassword('');
+      setDominantColor(null); setTextColor(null); // 상태 초기화
     } catch (err) {
       setError(err instanceof Error ? err.message : '게시물 생성 실패');
     } finally {
@@ -453,70 +1535,51 @@ export default function UploadPage() {
       textarea.setSelectionRange(newCursorPosition, newCursorPosition);
     }, 0);
   };
-
-  // ▼▼▼ 이미지 리사이즈 시 content 문자열을 업데이트하는 핸들러 ▼▼▼
+  
   const handleImageResize = (src: string, newWidth: number) => {
     setContent(currentContent => {
       const escapedSrc = escapeRegExp(src);
-      
-      // 1. 이미 HTML <img> 태그인지 확인하고 업데이트
       const htmlImgRegex = new RegExp(`<img[^>]*src="(${escapedSrc})"[^>]*>`, 'i');
       if (htmlImgRegex.test(currentContent)) {
         return currentContent.replace(htmlImgRegex, (match) => {
           if (/width="/i.test(match)) {
-            // width 속성이 있으면 교체
             return match.replace(/width="\d+"/i, `width="${newWidth}"`);
           } else {
-            // width 속성이 없으면 추가
             return match.replace(/<img/i, `<img width="${newWidth}"`);
           }
         });
       }
-
-      // 2. 마크다운 구문 `![alt](src)`를 HTML `<img>` 태그로 교체
       const markdownImgRegex = new RegExp(`!\\[([^\\]]*)\\]\\((${escapedSrc})\\)`, 'g');
       if (markdownImgRegex.test(currentContent)) {
         return currentContent.replace(markdownImgRegex, `<img alt="$1" src="${src}" width="${newWidth}" />`);
       }
-
-      // 일치하는 이미지가 없으면 원본 content 반환
       return currentContent;
     });
   };
-  // ▲▲▲ 여기까지 추가 ▲▲▲
 
   return (
     <main className={`min-h-screen bg-gray-100 p-4 sm:p-8 ${selectedFont}`}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* --- 왼쪽: 작성 폼 --- */}
         <div className="bg-white p-8 rounded-lg shadow-md space-y-6 h-fit">
-          {/* ... (폼 내용은 변경 없음) ... */}
           <h1 className="text-3xl font-bold text-center text-gray-900">새 게시물 작성</h1>
-          
           <div>
             <label htmlFor="font-select" className="block text-sm font-medium text-gray-700">폰트 선택</label>
             <select id="font-select" value={selectedFont} onChange={(e) => setSelectedFont(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm">
               {Object.entries(fontClasses).map(([className, name]) => ( <option key={className} value={className}>{name}</option>))}
             </select>
           </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             <div><label htmlFor="title" className="block text-sm font-medium text-gray-700">제목</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required /></div>
-            
             <div>
               <label htmlFor="tags" className="block text-sm font-medium text-gray-700">태그</label>
               <input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="태그를 쉼표(,)로 구분하여 입력" />
             </div>
-
             <div>
               <label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700">대표 이미지</label>
               <input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />
-              {isThumbnailUploading && <p className="text-sm text-gray-500 mt-2">대표 이미지 업로드 중...</p>}
+              {isThumbnailUploading && <p className="text-sm text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}
             </div>
-            
             <div><label htmlFor="file" className="block text-sm font-medium text-gray-700">본문 이미지 (여러 개 선택 가능)</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}</div>
-            
             <div>
               <div className="flex justify-between items-center">
                 <label htmlFor="content" className="block text-sm font-medium text-gray-700">본문 (Markdown 지원)</label>
@@ -524,7 +1587,6 @@ export default function UploadPage() {
               </div>
               <textarea ref={contentRef} id="content" rows={10} value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required />
             </div>
-            
             <div className="space-y-4 rounded-md border border-gray-200 p-4">
               <h3 className="text-sm font-medium text-gray-900">옵션</h3>
               <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="blur-toggle" type="checkbox" checked={isBlurred} onChange={(e) => setIsBlurred(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="blur-toggle" className="font-medium text-gray-700">대표 이미지 흐리게</label><p className="text-gray-500">SNS 썸네일을 블러 처리합니다.</p></div></div>
@@ -535,15 +1597,11 @@ export default function UploadPage() {
                 <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="게시물 보호용 비밀번호" />
               </div>
             </div>
-
             <button type="submit" disabled={isSubmitting || isUploading || isThumbnailUploading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">{isSubmitting ? '생성 중...' : '공유 링크 생성'}</button>
           </form>
-
           {error && <p className="mt-4 text-sm text-center text-red-600">{error}</p>}
           {generatedLink && (<div className="mt-6 p-4 bg-gray-100 border border-gray-200 rounded-md"><p className="text-sm font-medium text-gray-800">✅ 성공! 생성된 링크:</p><a href={generatedLink} target="_blank" rel="noopener noreferrer" className="block mt-1 text-sm text-gray-900 font-semibold break-all hover:underline">{generatedLink}</a></div>)}
         </div>
-
-        {/* --- 오른쪽: 실시간 미리보기 --- */}
         <div className="space-y-8 sticky top-8 h-fit">
           <OgPreview 
             title={title}
@@ -557,7 +1615,6 @@ export default function UploadPage() {
           <ContentPreview 
             content={content}
             fontClass={selectedFont}
-            // ▼▼▼ 핸들러 함수를 prop으로 전달 ▼▼▼
             onImageResize={handleImageResize}
           />
         </div>
@@ -566,103 +1623,9 @@ export default function UploadPage() {
   );
 }
 
-
 ============================================================
-FILE: app/upload/ContentPreview.tsx
+FILE: app\[locale]\upload\ResizableImage.tsx
 ============================================================
-
-'use client';
-
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
-import rehypeRaw from 'rehype-raw';
-import type { Pluggable } from 'unified';
-import { MouseEvent } from 'react';
-import ResizableImage from './ResizableImage';
-
-interface ContentPreviewProps {
-  content: string;
-  fontClass: string;
-  onImageResize: (src: string, newWidth: number) => void;
-}
-
-export default function ContentPreview({ content, fontClass, onImageResize }: ContentPreviewProps) {
-  const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.classList.contains('spoiler')) {
-      target.classList.remove('spoiler');
-      target.classList.add('spoiler-revealed');
-    }
-  };
-
-  const processContentForSpoilers = (text: string) => {
-    return text.replace(/블러\[(.*?)\]/g, '<span class="spoiler">$1</span>');
-  };
-
-  const processedContent = processContentForSpoilers(content);
-
-  return (
-    <div>
-      <h3 className="text-lg font-semibold mb-2 text-gray-800">본문 미리보기</h3>
-      <div 
-        className={`prose lg:prose-lg w-full max-w-none bg-white p-6 sm:p-8 rounded-lg shadow-lg border min-h-[200px] ${fontClass}`}
-        onClick={handleSpoilerClick}
-      >
-        {content ? (
-          <ReactMarkdown 
-            remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
-            rehypePlugins={[rehypeRaw]}
-            components={{
-              p: ({ node, children }) => {
-                if (!node) {
-                  return <p>{children}</p>;
-                }
-                const firstChild = node.children[0];
-                if (
-                  node.children.length === 1 &&
-                  firstChild && 'tagName' in firstChild &&
-                  firstChild.tagName === 'img'
-                ) {
-                  return <>{children}</>;
-                }
-                return <p>{children}</p>;
-              },
-              // ▼▼▼ src가 string 타입인지 확인하는 로직 추가 ▼▼▼
-              img: ({ src, alt, width }) => {
-                // src가 문자열이 아니면 렌더링하지 않음 (오류 방지)
-                if (typeof src !== 'string') {
-                  return null;
-                }
-
-                const currentWidth = width ? Number(width) : undefined;
-                return (
-                  <ResizableImage 
-                    src={src} // 이제 src는 string 타입임이 보장됨
-                    alt={alt || ''}
-                    currentWidth={currentWidth}
-                    onResize={onImageResize}
-                  />
-                );
-              }
-              // ▲▲▲ 여기까지 수정 ▲▲▲
-            }}
-          >
-            {processedContent}
-          </ReactMarkdown>
-        ) : (
-          <p className="text-gray-400">본문 내용이 여기에 표시됩니다.</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-
-============================================================
-FILE: app/upload/ResizableImage.tsx
-============================================================
-
 // ▼▼▼ "use client" 지시어 추가 ▼▼▼
 'use client';
 // ▲▲▲ 여기까지 추가 ▲▲▲
@@ -754,98 +1717,123 @@ export default function ResizableImage({ src, alt, currentWidth, onResize }: Res
   );
 }
 
-
 ============================================================
-FILE: app/view/[id]/PostContent.tsx
+FILE: app\[locale]\view\[id]\page.tsx
 ============================================================
+import { notFound } from 'next/navigation';
+import { db } from '@vercel/postgres';
+import type { Metadata } from 'next';
+import { unstable_noStore as noStore } from 'next/cache';
+import PostContent from './PostContent';
+import PasswordProtect from './PasswordProtect';
+import type { Post } from '@/types';
 
-'use client';
-
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
-import rehypeRaw from 'rehype-raw';
-import type { Pluggable } from 'unified';
-import { MouseEvent } from 'react';
-
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  thumbnail_url: string;
-  is_thumbnail_blurred: boolean;
-  is_content_spoiler: boolean;
-  font_family: string | null;
-  password: string | null;
-  created_at: string;
+async function getPostData(id: string): Promise<Post | null> {
+  noStore();
+  try {
+    // user_id를 포함하여 선택합니다. Post 타입에 user_id를 추가해야 합니다.
+    const { rows } = await db.sql<Post>`SELECT *, user_id FROM posts WHERE id = ${id} LIMIT 1;`;
+    if (rows.length === 0) return null;
+    return rows[0];
+  } catch (error) {
+    console.error("Database query failed:", error);
+    return null;
+  }
 }
 
-export default function PostContent({ post }: { post: Post }) {
+// 매개변수 위치에 직접 타입을 명시합니다.
+export async function generateMetadata(
+  { params }: { params: { id: string } }
+): Promise<Metadata> {
+  const post = await getPostData(params.id);
+
+  if (!post) {
+    return { title: '게시물을 찾을 수 없습니다' };
+  }
+
+  const cleanDescriptionForOg = post.content
+    ? post.content
+        .replace(/!\[.*?\]\(.*?\)/g, '')
+        .replace(/<img[^>]*>/gi, '')
+        .replace(/블러\[.*?\]/g, '')
+        .replace(/[`*_{}[\]()#+\-.!]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 100)
+    : '';
+
+  const displayDescription = post.is_content_spoiler 
+    ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' 
+    : cleanDescriptionForOg || '친구로부터 공유된 게시물을 확인하세요.';
+
+  const ogImageUrl = new URL(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/og`);
   
-  const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.classList.contains('spoiler')) {
-      target.classList.remove('spoiler');
-      target.classList.add('spoiler-revealed');
-    }
+  ogImageUrl.searchParams.set('title', post.title);
+  ogImageUrl.searchParams.set('imageUrl', post.thumbnail_url);
+  ogImageUrl.searchParams.set('isBlurred', String(post.is_thumbnail_blurred));
+  ogImageUrl.searchParams.set('isSpoiler', String(post.is_content_spoiler));
+  ogImageUrl.searchParams.set('isNsfw', String(post.is_nsfw));
+  
+  if (cleanDescriptionForOg) {
+    ogImageUrl.searchParams.set('artist', cleanDescriptionForOg);
+  }
+  if (post.tags) {
+    ogImageUrl.searchParams.set('tags', post.tags);
+  }
+  if (post.dominant_color) {
+    ogImageUrl.searchParams.set('bgColor', post.dominant_color);
+  }
+  if (post.text_color) {
+    ogImageUrl.searchParams.set('textColor', post.text_color);
+  }
+
+  return {
+    title: post.title,
+    description: displayDescription,
+    openGraph: {
+      title: post.title,
+      description: displayDescription,
+      images: [ogImageUrl.toString()],
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: displayDescription,
+      images: [ogImageUrl.toString()],
+    },
   };
+}
 
-  const processContentForSpoilers = (text: string) => {
-    return text.replace(/블러\[(.*?)\]/g, '<span class="spoiler">$1</span>');
-  };
-
-  const processedContent = processContentForSpoilers(post.content);
-
+// 페이지 컴포넌트에도 직접 타입을 명시합니다.
+export default async function ViewPage({ params }: { params: { id: string } }) {
+  const post = await getPostData(params.id);
+  if (!post) notFound();
+  
   return (
-    <article 
-      className="prose lg:prose-lg w-full max-w-3xl bg-white p-6 sm:p-10 rounded-lg shadow-lg"
-      onClick={handleSpoilerClick}
-    >
-      <h1>{post.title}</h1>
-      <ReactMarkdown 
-        remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
-        rehypePlugins={[rehypeRaw]}
-        components={{ 
-          // ▼▼▼ 경고 해결을 위해 코드 수정 ▼▼▼
-          'img': ({ ...props }) => ( // 1. 사용하지 않는 'node' 제거
-            // 2. img 태그 경고를 무시하는 주석 추가
-            // eslint-disable-next-line @next/next/no-img-element
-            <img {...props} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} alt="" /> 
-          )
-          // ▲▲▲ 여기까지 수정 ▲▲▲
-        }}
-      >
-        {processedContent}
-      </ReactMarkdown>
-    </article>
+    <main className={`flex min-h-screen items-center justify-center bg-gray-100 py-8 px-4 ${post.font_family || 'font-pretendard'}`}>
+      {post.password ? (
+        <PasswordProtect post={post} />
+      ) : (
+        <PostContent post={post} />
+      )}
+    </main>
   );
 }
 
-
 ============================================================
-FILE: app/view/[id]/PasswordProtect.tsx
+FILE: app\[locale]\view\[id]\PasswordProtect.tsx
 ============================================================
-
 'use client';
 
 import { useState, FormEvent } from 'react';
 import PostContent from './PostContent';
+import type { Post } from '@/types'; // Post 타입을 import 합니다.
 
-// Post 타입을 page.tsx와 동일하게 정의
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  thumbnail_url: string;
-  is_thumbnail_blurred: boolean;
-  is_content_spoiler: boolean;
-  is_nsfw: boolean; // is_nsfw 추가 (타입 일관성)
-  font_family: string | null;
-  password: string | null;
-  created_at: string;
-}
+// Post 인터페이스를 여기서 제거합니다.
 
 export default function PasswordProtect({ post }: { post: Post }) {
+  // ... 나머지 코드는 동일 ...
   const [isVerified, setIsVerified] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [error, setError] = useState('');
@@ -911,323 +1899,545 @@ export default function PasswordProtect({ post }: { post: Post }) {
   );
 }
 
-
 ============================================================
-FILE: app/api/posts/route.ts
+FILE: app\[locale]\view\[id]\PostContent.tsx
 ============================================================
+// app/[locale]/view/[id]/PostContent.tsx (최종 완성)
 
-import { NextResponse } from 'next/server';
-import { db } from '@vercel/postgres';
-import { nanoid } from 'nanoid';
-import bcrypt from 'bcrypt';
+'use client';
 
-export async function POST(request: Request) {
-  try {
-    const { 
-      title,
-      // ▼▼▼ tags 값 수신 ▼▼▼
-      tags,
-      // ▲▲▲ tags 값 수신 ▲▲▲
-      content, 
-      thumbnailUrl, 
-      isThumbnailBlurred, 
-      isContentSpoiler, 
-      isNsfw,
-      selectedFont,
-      password
-    } = await request.json();
+import { useState, useEffect, MouseEvent } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
+import rehypeRaw from 'rehype-raw';
+import type { Pluggable } from 'unified';
+import type { Post } from '@/types';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Edit } from 'lucide-react';
 
-    if (!title || !content || !thumbnailUrl) {
-      return NextResponse.json({ error: '제목, 내용, 대표 이미지는 필수입니다.' }, { status: 400 });
+export default function PostContent({ post }: { post: Post }) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const { data: session } = useSession();
+  const isAuthor = session && (session.user as any).id === (post as any).user_id;
+
+  const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('spoiler')) {
+      target.classList.remove('spoiler');
+      target.classList.add('spoiler-revealed');
     }
+  };
 
-    let hashedPassword = null;
-    if (password && password.length > 0) {
-      const saltRounds = 10;
-      hashedPassword = await bcrypt.hash(password, saltRounds);
-    }
+  const processContentForSpoilers = (text: string) => {
+    return text.replace(/블러\[(.*?)\]/g, '<span class="spoiler">$1</span>');
+  };
 
-    const id = nanoid();
+  const processedContent = processContentForSpoilers(post.content);
 
-    await db.sql`
-      -- ▼▼▼ tags 컬럼 추가 ▼▼▼
-      INSERT INTO posts (id, title, tags, content, thumbnail_url, is_thumbnail_blurred, is_content_spoiler, is_nsfw, font_family, password)
-      VALUES (${id}, ${title}, ${tags}, ${content}, ${thumbnailUrl}, ${isThumbnailBlurred}, ${isContentSpoiler}, ${isNsfw}, ${selectedFont}, ${hashedPassword});
-      -- ▲▲▲ tags 컬럼 추가 ▲▲▲
-    `;
+  return (
+    <article
+      className="prose lg:prose-lg w-full max-w-3xl bg-white p-6 sm:p-10 rounded-lg shadow-lg"
+      onClick={handleSpoilerClick}
+    >
+      <div className="flex justify-between items-start">
+        <h1>{post.title}</h1>
+        {isAuthor && (
+          <Link href={`/edit/${post.id}`} className="not-prose p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors -mt-2 -mr-4">
+            <Edit size={20} />
+          </Link>
+        )}
+      </div>
 
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
-    const generatedUrl = `${baseUrl}/view/${id}`;
+      {/* 서버와 초기 렌더링 시에는 아무것도 렌더링하지 않거나, 간단한 로딩 메시지를 보여줍니다. */}
+      {!isClient && <div>콘텐츠를 불러오는 중...</div>}
 
-    return NextResponse.json({ success: true, url: generatedUrl });
-
-  } catch (error) {
-    console.error('Create Post API Error:', error);
-    return NextResponse.json({ error: '게시물 생성 중 서버에서 에러가 발생했습니다.' }, { status: 500 });
-  }
+      {/* 클라이언트에서 마운트된 후에만 ReactMarkdown을 렌더링합니다. */}
+      {isClient && (
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            'img': ({ ...props }) => (
+              <img {...props} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} alt="" />
+            )
+          }}
+        >
+          {processedContent}
+        </ReactMarkdown>
+      )}
+    </article>
+  );
 }
 
-
 ============================================================
-FILE: app/api/upload/route.ts
+FILE: components\Header.tsx
 ============================================================
+'use client';
 
-import { NextResponse } from 'next/server';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { nanoid } from 'nanoid';
+import Link from 'next/link'; // next-intl 대신 next/link 에서 가져옵니다.
+import { useSession, signOut } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
+import LanguageSwitcher from './LanguageSwitcher';
 
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT!,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-});
+export default function Header() {
+  const { data: session, status } = useSession();
+  const isLoading = status === 'loading';
+  const t = useTranslations('Header');
 
-function getPublicUrl(filename: string): string {
-  const publicUrlBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!;
-  return `${publicUrlBase.replace(/\/$/, '')}/${filename}`;
-}
-
-export async function POST(request: Request) {
-  try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-
-    if (!file) {
-      return NextResponse.json({ error: '파일이 없습니다.' }, { status: 400 });
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const uniqueId = nanoid(10); // 짧은 고유 ID
-    const key = `${uniqueId}-${file.name}`;
-
-    const command = new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME!,
-      Key: key,
-      Body: buffer,
-      ContentType: file.type,
-    });
-    
-    await s3Client.send(command);
-
-    const publicUrl = getPublicUrl(key);
-
-    // 이제 DB에 저장하지 않고, 업로드된 파일의 URL과 파일명만 반환합니다.
-    return NextResponse.json({ success: true, url: publicUrl, filename: file.name });
-
-  } catch (error) {
-    console.error('Upload API Error:', error);
-    return NextResponse.json({ error: '파일 업로드 중 서버에서 에러가 발생했습니다.' }, { status: 500 });
-  }
-}
-
-
-============================================================
-FILE: app/api/og/route.tsx
-============================================================
-
-// app/api/og/route.tsx
-
-import { ImageResponse } from 'next/og';
-import { NextRequest, NextResponse } from 'next/server';
-import { join } from 'path';
-import * as fs from 'fs';
-import sharp from 'sharp';
-
-export const runtime = 'nodejs';
-
-// --- 함수 밖으로 폰트 로딩 로직을 빼서 초기화 시 한 번만 실행되도록 수정 ---
-let pretendardBold: Buffer | null = null;
-let pretendardRegular: Buffer | null = null;
-try {
-  const fontBoldPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Black.otf');
-  const fontRegularPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Medium.otf');
-  pretendardBold = fs.readFileSync(fontBoldPath);
-  pretendardRegular = fs.readFileSync(fontRegularPath);
-} catch (fontError) {
-  console.error("Failed to load fonts:", fontError);
-  // 폰트 로딩 실패 시에도 서버가 죽지 않도록 처리
-}
-// --- 여기까지 수정 ---
-
-function getContrastingTextColor(r: number, g: number, b: number): string {
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? '#000000' : '#FFFFFF';
-}
-
-export async function GET(req: NextRequest) {
-  // --- 전체를 try-catch로 감싸서 모든 에러를 잡습니다 ---
-  try {
-    // 폰트가 로드되지 않았으면 에러 응답
-    if (!pretendardBold || !pretendardRegular) {
-      throw new Error("Server font files are not loaded.");
-    }
-    
-    const { searchParams } = new URL(req.url);
-
-    const title = searchParams.get('title') || '제목 없음';
-    const artist = searchParams.get('artist');
-    const imageUrl = searchParams.get('imageUrl');
-    const isBlurred = searchParams.get('isBlurred') === 'true';
-    const isSpoiler = searchParams.get('isSpoiler') === 'true';
-    const isNsfw = searchParams.get('isNsfw') === 'true';
-    const tagsParam = searchParams.get('tags');
-    const tags = tagsParam ? tagsParam.split(',').map(tag => tag.trim()).filter(Boolean) : [];
-
-    let backgroundColor = '#28234D';
-    let textColor = '#FFFFFF';
-    let tagBackgroundColor = 'rgba(255, 255, 255, 0.15)';
-    let playButtonColor = '#28234D';
-
-    if (imageUrl) {
-      try {
-        const response = await fetch(imageUrl, { cache: 'no-store' }); // 캐시 사용 안함
-        if (!response.ok) {
-          throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-        }
-        const imageBuffer = await response.arrayBuffer();
-        const { dominant } = await sharp(Buffer.from(imageBuffer)).stats();
-        const { r, g, b } = dominant;
-        
-        backgroundColor = `rgb(${r}, ${g}, ${b})`;
-        textColor = getContrastingTextColor(r, g, b);
-
-        if (textColor === '#FFFFFF') {
-          tagBackgroundColor = 'rgba(255, 255, 255, 0.15)';
-        } else {
-          tagBackgroundColor = 'rgba(0, 0, 0, 0.1)';
-        }
-        playButtonColor = `rgb(${r}, ${g}, ${b})`;
-
-      } catch (colorError) {
-        console.error("Failed to extract dominant color:", colorError);
-        // 색상 추출 실패 시 기본 색상으로 계속 진행
-      }
-    }
-
-    const previewText = artist
-      ? artist
-          .replace(/!\[.*?\]\(.*?\)/g, '')
-          .replace(/<img[^>]*>/gi, '')
-          .replace(/블러\[.*?\]/g, '')
-          .replace(/\n/g, ' ')
-          .trim()
-      : '';
-
-    // ImageResponse 생성
-    return new ImageResponse(
-      (
-        <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: backgroundColor, color: textColor, padding: '40px' }}>
-          {/* ... 기존 JSX 내용은 동일하므로 생략 ... */}
-          <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-            <div style={{ position: 'relative', width: 550, height: 550, display: 'flex' }}>
-              {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt=""
-                  width={550}
-                  height={550}
-                  style={{ borderRadius: '20px', objectFit: 'cover', filter: isBlurred ? 'blur(40px)' : 'none' }}
-                />
-              )}
-              {isNsfw && (
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" height="150" width="150" viewBox="0 0 640 512" fill="white"><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7C559.7 341.5 584 285.4 597.8 232.2c1.1-4.4 1.1-9.1 0-13.5C580.5 164.6 539.4 96 468.6 41.2C408.4-1.9 344.7-13.5 283.5 1.7L38.8 5.1zM240 128a128 128 0 0 0-93.5 210.3L209.2 282c-10-24-8.5-52.3 5.8-74.3s38.3-36.8 63-38.2l51.9-41.5C301.7 132 272.1 128 240 128zM320 384c-35.3 0-68.7-12.1-96.6-33.9L262 311.9c13.4 10.9 30.6 17.1 48.8 17.1c52.9 0 96-43.1 96-96c0-18.2-5.2-35.4-14.2-50.2L427.2 215c15.2 21.5 24.8 47.3 24.8 74.2c0 88.4-71.6 160-160 160z"/></svg>
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '40px', flex: 1, justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.8 }}>
-                <svg xmlns="http://www.w3.org/2000/svg" height="80" width="80" viewBox="0 0 576 512" fill={textColor}><path d="M305 151.1L320 171.8L335 151.1C360 116.5 400.2 96 442.9 96C516.4 96 576 155.6 576 229.1L576 231.7C576 343.9 436.1 474.2 363.1 529.9C350.7 539.3 335.5 544 320 544C304.5 544 289.2 539.4 276.9 529.9C203.9 474.2 64 343.9 64 231.7L64 229.1C64 155.6 123.6 96 197.1 96C239.8 96 280 116.5 305 151.1z"/></svg>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', fontFamily: '"PretendardJP-Black"' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-                  {tags.map((tag) => ( <div key={tag} style={{ display: 'flex', padding: '6px 16px', backgroundColor: tagBackgroundColor, borderRadius: '9999px', fontSize: '28px', fontFamily: '"PretendardJP-Medium"', fontWeight: 400, lineHeight: 1.2, }}>{tag}</div> ))}
-                </div>
-                <div style={{ fontSize: '60px', fontWeight: 'bold', letterSpacing: '-0.02em' }}>{title}</div>
-                {previewText && (<div style={{ fontSize: '40px', marginTop: '10px', opacity: 0.7, wordBreak: 'break-all', lineHeight: 1.3, fontFamily: '"PretendardJP-Medium"', fontWeight: 400, }}>{isSpoiler ? '내용이 가려졌습니다.' : previewText}</div>)}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100px', height: '100px', backgroundColor: textColor, borderRadius: '50%' }}>
-                  <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 5.13965V18.8604C8 19.56 8.66274 20.0168 9.30852 19.642L20.6915 12.7816C21.3373 12.4078 21.3373 11.5922 20.6915 11.2184L9.30852 4.35795C8.66274 3.98317 8 4.44004 8 5.13965Z" fill={playButtonColor}/></svg>
-                </div>
-              </div>
-            </div>
+  return (
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <Link href="/" className="font-bold text-xl text-gray-800">
+            Private Media Sharer
+          </Link>
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <LanguageSwitcher />
+            {isLoading ? (
+              <div className="w-24 h-8 bg-gray-200 rounded-md animate-pulse"></div>
+            ) : session ? (
+              <>
+                <span className="text-sm text-gray-600 hidden sm:block">{t('welcome', { name: session.user?.name })}</span>
+                <Link href="/my-posts" className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md">
+                  {t('myPosts')}
+                </Link>
+                <Link href="/upload" className="px-3 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md">
+                  {t('writePost')}
+                </Link>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+                >
+                  {t('logout')}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md">
+                  {t('login')}
+                </Link>
+                <Link href="/signup" className="px-3 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md">
+                  {t('signup')}
+                </Link>
+              </>
+            )}
           </div>
         </div>
-      ),
-      { width: 1200, height: 630, fonts: [{ name: 'PretendardJP-Black', data: pretendardBold, style: 'normal', weight: 800 }, { name: 'PretendardJP-Medium', data: pretendardRegular, style: 'normal', weight: 400 }] },
-    );
-
-  } catch (e: unknown) {
-    // --- 에러 발생 시, 에러 메시지를 담은 텍스트 응답을 반환하여 디버깅 용이하게 함 ---
-    let errorMessage = 'An unknown error occurred';
-    if (e instanceof Error) {
-      errorMessage = e.message;
-    }
-    console.error(`OG Image generation failed: ${errorMessage}`);
-    // 에러 메시지를 담은 일반 텍스트 응답을 반환합니다.
-    return new NextResponse(`Failed to generate the image: ${errorMessage}`, { status: 500 });
-  }
-}
-
-
-============================================================
-FILE: app/api/verify-password/route.ts
-============================================================
-
-import { NextResponse } from 'next/server';
-import { db } from '@vercel/postgres';
-import bcrypt from 'bcrypt';
-
-export async function POST(request: Request) {
-  try {
-    const { id, password } = await request.json();
-
-    if (!id || !password) {
-      return NextResponse.json({ error: 'ID와 비밀번호를 모두 입력해야 합니다.' }, { status: 400 });
-    }
-
-    const { rows } = await db.sql`SELECT password FROM posts WHERE id = ${id} LIMIT 1;`;
-
-    if (rows.length === 0) {
-      return NextResponse.json({ error: '게시물을 찾을 수 없습니다.' }, { status: 404 });
-    }
-
-    const hashedPassword = rows[0].password;
-    if (!hashedPassword) {
-        // DB에 비밀번호가 없는 경우 (오류 상황)
-        return NextResponse.json({ error: '이 게시물에는 비밀번호가 설정되어 있지 않습니다.' }, { status: 400 });
-    }
-
-    const isMatch = await bcrypt.compare(password, hashedPassword);
-
-    if (isMatch) {
-      return NextResponse.json({ success: true });
-    } else {
-      return NextResponse.json({ success: false, error: '비밀번호가 일치하지 않습니다.' }, { status: 401 });
-    }
-
-  } catch (error) {
-    console.error('Verify Password API Error:', error);
-    return NextResponse.json({ error: '비밀번호 확인 중 서버 에러가 발생했습니다.' }, { status: 500 });
-  }
+      </nav>
+    </header>
+  );
 }
 
 ============================================================
-FILE: "C:\Users\user\Downloads\Rproject\private-media-sharer\app\view\[id]\page.tsx"
+FILE: components\LanguageSwitcher.tsx
 ============================================================
+// components/LanguageSwitcher.tsx (가장 안정적인 최종 버전)
+'use client';
 
-import { notFound } from 'next/navigation';
-import { db } from '@vercel/postgres';
-import type { Metadata } from 'next';
-import { unstable_noStore as noStore } from 'next/cache';
-import PostContent from './PostContent';
-import PasswordProtect from './PasswordProtect';
+import { useLocale, useTranslations } from 'next-intl';
+// 1. next-intl 대신 next/navigation에서 훅을 가져옵니다. (원래대로)
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
 
-interface Post {
+export default function LanguageSwitcher() {
+  const t = useTranslations('LanguageSwitcher');
+  const locale = useLocale(); // 현재 로케일 ('ko', 'en' 등)을 가져옵니다.
+  const router = useRouter();
+  const pathname = usePathname(); // 현재 전체 경로 ('/ko/upload' 등)를 가져옵니다.
+  const [isPending, startTransition] = useTransition();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const languages: { [key: string]: string } = {
+    ko: t('korean'),
+    en: t('english'),
+    ja: t('japanese'),
+  };
+
+  const onSelectChange = (nextLocale: string) => {
+    // 2. URL을 올바르게 만드는 로직
+    // 현재 경로(pathname)에서 현재 로케일(locale) 부분을 제거하여
+    // 순수한 경로(예: '/upload')를 만듭니다.
+    const basePath = pathname.startsWith(`/${locale}`)
+      ? pathname.substring(locale.length + 1)
+      : pathname;
+
+    startTransition(() => {
+      // 새 로케일과 순수 경로를 조합하여 올바른 URL로 이동합니다.
+      router.replace(`/${nextLocale}${basePath}`);
+    });
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isPending}
+        className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md flex items-center"
+      >
+        {languages[locale]}
+        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+      </button>
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-20">
+          <ul className="py-1">
+            {Object.keys(languages).map((langCode) => (
+              <li key={langCode}>
+                <button
+                  onClick={() => onSelectChange(langCode)}
+                  className={`w-full text-left px-4 py-2 text-sm ${locale === langCode ? 'font-bold bg-gray-100' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  {languages[langCode]}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+============================================================
+FILE: components\SessionProvider.tsx
+============================================================
+'use client';
+
+import { SessionProvider } from 'next-auth/react';
+
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
+  return <SessionProvider>{children}</SessionProvider>;
+}
+
+============================================================
+FILE: messages\en.json
+============================================================
+{
+  "Header": {
+    "welcome": "Welcome, {name}!",
+    "myPosts": "My Posts",
+    "writePost": "Write",
+    "logout": "Log Out",
+    "login": "Log In",
+    "signup": "Sign Up"
+  },
+  "LanguageSwitcher": {
+    "changeLanguage": "Language",
+    "korean": "한국어",
+    "english": "English",
+    "japanese": "日本語"
+  },
+  "HomePage": {
+    "loggedInTitle": "Welcome, {name}!",
+    "loggedInSubtitle": "What would you like to share? Start creating your story now.",
+    "newPostButton": "Create a New Post",
+    "myPostsButton": "Go to My Archive",
+    "heroTitle": "Share Your Own Story\nPrivately",
+    "heroSubtitle": "Combine images and text, set a password, or customize the social media preview to create a special link just for your friends.",
+    "startButton": "Get Started Now",
+    "featuresTitle": "Main Features",
+    "featurePrivacyTitle": "Strong Privacy",
+    "featurePrivacyDesc": "Set a password on your posts to control who can see your content.",
+    "featureSNSTitle": "Attractive SNS Preview",
+    "featureSNSDesc": "Customize the image, title, and description that appear when you share your link.",
+    "featureEditorTitle": "Flexible Content Creation",
+    "featureEditorDesc": "Use the Markdown-supported editor to freely arrange and style images and text.",
+    "featureShareTitle": "Easy Sharing",
+    "featureShareDesc": "Your completed post is generated as a single unique link, making it easy to share anywhere.",
+    "featureArchiveTitle": "Personal Archive",
+    "featureArchiveDesc": "View all your created posts at a glance, and edit or revisit them anytime.",
+    "featureOptionsTitle": "Various Options",
+    "featureOptionsDesc": "We provide various options for your content, such as NSFW, spoilers, and blur effects.",
+    "ctaTitle": "Get Started Right Now",
+    "ctaSubtitle": "You can make your story special and share it with just a few clicks.",
+    "ctaButton": "Sign Up for Free"
+  },
+  "MyPostsPage": {
+    "title": "My Post Archive",
+    "noPosts": "You haven't written any posts yet.",
+    "writeFirstPost": "Write Your First Post"
+  },
+  "FormPage": {
+    "title": "Title",
+    "tags": "Tags",
+    "tagsPlaceholder": "Enter tags separated by commas (,)",
+    "thumbnail": "Thumbnail Image",
+    "thumbnailUploading": "Uploading and analyzing thumbnail...",
+    "bodyImages": "Body Images (multiple selection possible)",
+    "bodyImagesUploading": "Uploading...",
+    "content": "Content (Markdown supported)",
+    "addSpoiler": "Add Spoiler",
+    "options": "Options",
+    "blurThumbnail": "Blur Thumbnail Image",
+    "blurThumbnailDesc": "Blurs the social media thumbnail.",
+    "spoilerContent": "Spoiler for Body Content",
+    "spoilerContentDesc": "Hides the body content on social media.",
+    "nsfw": "NSFW (Not Safe For Work)",
+    "nsfwDesc": "Completely hides the social media thumbnail.",
+    "password": "Password (Optional)",
+    "passwordPlaceholder": "Password to protect the post",
+    "passwordEditPlaceholder": "New password or leave blank",
+    "createLinkButton": "Create Share Link",
+    "creating": "Creating...",
+    "updateButton": "Update Post",
+    "updating": "Updating...",
+    "successMessage": "✅ Success! Generated link:",
+    "updateSuccessMessage": "✅ Update successful! Share link:"
+  },
+  "UploadPage": {
+    "title": "Create New Post"
+  },
+  "EditPage": {
+    "title": "Edit Post",
+    "loading": "Loading data...",
+    "notFound": "Post not found."
+  },
+  "LoginPage": {
+    "title": "Log In",
+    "signupSuccess": "Sign up was successful. Please log in.",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Log In",
+    "loggingIn": "Logging in...",
+    "noAccount": "Don't have an account?",
+    "signupLink": "Sign up",
+    "error": "Invalid email or password."
+  },
+  "SignupPage": {
+    "title": "Sign Up",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "signupButton": "Sign Up",
+    "signingUp": "Signing up...",
+    "hasAccount": "Already have an account?",
+    "loginLink": "Log in"
+  }
+}
+
+============================================================
+FILE: messages\ja.json
+============================================================
+{
+  "Header": {
+    "welcome": "{name}さん、ようこそ！",
+    "myPosts": "マイ投稿",
+    "writePost": "作成",
+    "logout": "ログアウト",
+    "login": "ログイン",
+    "signup": "新規登録"
+  },
+  "LanguageSwitcher": {
+    "changeLanguage": "言語",
+    "korean": "한국어",
+    "english": "English",
+    "japanese": "日本語"
+  },
+  "HomePage": {
+    "loggedInTitle": "{name}さん、ようこそ！",
+    "loggedInSubtitle": "何を共有しますか？ 今すぐあなたの物語を作り始めましょう。",
+    "newPostButton": "新規投稿を作成",
+    "myPostsButton": "保管庫へ",
+    "heroTitle": "あなただけの物語を\nプライベートに共有しましょう",
+    "heroSubtitle": "画像とテキストを組み合わせ、パスワードを設定したり、SNSプレビューをカスタマイズして、友達だけに特別なリンクを作成できます。",
+    "startButton": "今すぐ始める",
+    "featuresTitle": "主な機能",
+    "featurePrivacyTitle": "強力なプライバシー",
+    "featurePrivacyDesc": "投稿にパスワードを設定し、許可された人だけが閲覧できるように制御します。",
+    "featureSNSTitle": "魅力的なSNSプレビュー",
+    "featureSNSDesc": "リンクを共有したときに表示される画像、タイトル、説明を自由にカスタマイズできます。",
+    "featureEditorTitle": "自由なコンテンツ作成",
+    "featureEditorDesc": "Markdown対応のエディタで、画像とテキストを自由に配置し、装飾できます。",
+    "featureShareTitle": "簡単な共有",
+    "featureShareDesc": "完成した投稿は単一のユニークなリンクとして生成され、どこにでも簡単に共有できます。",
+    "featureArchiveTitle": "自分だけの保管庫",
+    "featureArchiveDesc": "作成したすべての投稿を一覧表示し、いつでも編集したり再訪したりできます。",
+    "featureOptionsTitle": "多様なオプション",
+    "featureOptionsDesc": "NSFW、ネタバレ、ぼかし処理など、コンテンツに合わせた多様なオプションを提供します。",
+    "ctaTitle": "今すぐ始めましょう",
+    "ctaSubtitle": "数回のクリックで、あなたの物語を特別に作り、共有することができます。",
+    "ctaButton": "無料で登録"
+  },
+  "MyPostsPage": {
+    "title": "マイ投稿保管庫",
+    "noPosts": "まだ作成された投稿がありません。",
+    "writeFirstPost": "最初の投稿を作成する"
+  },
+  "FormPage": {
+    "title": "タイトル",
+    "tags": "タグ",
+    "tagsPlaceholder": "タグをカンマ(,)で区切って入力",
+    "thumbnail": "サムネイル画像",
+    "thumbnailUploading": "サムネイルをアップロード・分析中...",
+    "bodyImages": "本文画像（複数選択可能）",
+    "bodyImagesUploading": "アップロード中...",
+    "content": "本文（Markdown対応）",
+    "addSpoiler": "ネタバレ追加",
+    "options": "オプション",
+    "blurThumbnail": "サムネイル画像をぼかす",
+    "blurThumbnailDesc": "SNSのサムネイルをぼかします。",
+    "spoilerContent": "本文のネタバレ",
+    "spoilerContentDesc": "SNSで本文の内容を隠します。",
+    "nsfw": "NSFW (閲覧注意)",
+    "nsfwDesc": "SNSのサムネイルを完全に隠します。",
+    "password": "パスワード（任意）",
+    "passwordPlaceholder": "投稿を保護するためのパスワード",
+    "passwordEditPlaceholder": "新しいパスワードまたは空のままにする",
+    "createLinkButton": "共有リンクを作成",
+    "creating": "作成中...",
+    "updateButton": "更新",
+    "updating": "更新中...",
+    "successMessage": "✅ 成功！生成されたリンク：",
+    "updateSuccessMessage": "✅ 更新成功！共有リンク："
+  },
+  "UploadPage": {
+    "title": "新規投稿の作成"
+  },
+  "EditPage": {
+    "title": "投稿の編集",
+    "loading": "データを読み込み中...",
+    "notFound": "投稿が見つかりません。"
+  },
+  "LoginPage": {
+    "title": "ログイン",
+    "signupSuccess": "新規登録が完了しました。ログインしてください。",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "loginButton": "ログイン",
+    "loggingIn": "ログイン中...",
+    "noAccount": "アカウントをお持ちでないですか？",
+    "signupLink": "新規登録",
+    "error": "メールアドレスまたはパスワードが正しくありません。"
+  },
+  "SignupPage": {
+    "title": "新規登録",
+    "name": "名前",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "signupButton": "登録する",
+    "signingUp": "登録中...",
+    "hasAccount": "すでにアカウントをお持ちですか？",
+    "loginLink": "ログイン"
+  }
+}
+
+============================================================
+FILE: messages\ko.json
+============================================================
+{
+  "Header": {
+    "welcome": "환영합니다, {name}님",
+    "myPosts": "내 포스트",
+    "writePost": "글쓰기",
+    "logout": "로그아웃",
+    "login": "로그인",
+    "signup": "회원가입"
+  },
+  "LanguageSwitcher": {
+    "changeLanguage": "언어 변경",
+    "korean": "한국어",
+    "english": "English",
+    "japanese": "日本語"
+  },
+  "HomePage": {
+    "loggedInTitle": "안녕하세요, {name}님!",
+    "loggedInSubtitle": "무엇을 공유하고 싶으신가요? 지금 바로 당신의 이야기를 만들어보세요.",
+    "newPostButton": "새 포스트 작성하기",
+    "myPostsButton": "내 보관함 가기",
+    "heroTitle": "당신만의 이야기를\n비공개로 공유하세요",
+    "heroSubtitle": "이미지와 텍스트를 조합하여 비밀번호를 설정하거나, SNS 미리보기를 꾸며 친구에게만 보여주고 싶은 특별한 링크를 만들어보세요.",
+    "startButton": "지금 시작하기",
+    "featuresTitle": "주요 기능",
+    "featurePrivacyTitle": "강력한 프라이버시",
+    "featurePrivacyDesc": "게시물에 비밀번호를 설정하여 허락된 사람만 볼 수 있도록 제어하세요.",
+    "featureSNSTitle": "매력적인 SNS 미리보기",
+    "featureSNSDesc": "링크를 공유했을 때 표시될 이미지, 제목, 내용을 마음대로 꾸밀 수 있습니다.",
+    "featureEditorTitle": "자유로운 콘텐츠 작성",
+    "featureEditorDesc": "Markdown을 지원하는 에디터로 이미지와 글을 자유롭게 배치하고 꾸며보세요.",
+    "featureShareTitle": "간편한 공유",
+    "featureShareDesc": "완성된 게시물은 단 하나의 고유 링크로 만들어져 어디든 쉽게 공유할 수 있습니다.",
+    "featureArchiveTitle": "나만의 보관함",
+    "featureArchiveDesc": "내가 만든 모든 포스트를 한눈에 보고 언제든지 수정하거나 다시 볼 수 있습니다.",
+    "featureOptionsTitle": "다양한 옵션",
+    "featureOptionsDesc": "NSFW, 스포일러, 블러 처리 등 콘텐츠에 맞는 다양한 옵션을 제공합니다.",
+    "ctaTitle": "지금 바로 시작해보세요",
+    "ctaSubtitle": "몇 번의 클릭만으로 당신의 이야기를 특별하게 만들고 공유할 수 있습니다.",
+    "ctaButton": "무료로 가입하기"
+  },
+  "MyPostsPage": {
+    "title": "내 포스트 보관함",
+    "noPosts": "아직 작성한 포스트가 없습니다.",
+    "writeFirstPost": "첫 포스트 작성하기"
+  },
+  "FormPage": {
+    "title": "제목",
+    "tags": "태그",
+    "tagsPlaceholder": "태그를 쉼표(,)로 구분하여 입력",
+    "thumbnail": "대표 이미지",
+    "thumbnailUploading": "대표 이미지 업로드 및 분석 중...",
+    "bodyImages": "본문 이미지 (여러 개 선택 가능)",
+    "bodyImagesUploading": "업로드 중...",
+    "content": "본문 (Markdown 지원)",
+    "addSpoiler": "스포일러 추가",
+    "options": "옵션",
+    "blurThumbnail": "대표 이미지 흐리게",
+    "blurThumbnailDesc": "SNS 썸네일을 블러 처리합니다.",
+    "spoilerContent": "본문 내용 스포일러",
+    "spoilerContentDesc": "SNS 본문 내용을 가립니다.",
+    "nsfw": "NSFW (민감한 콘텐츠)",
+    "nsfwDesc": "SNS 썸네일을 완전히 가립니다.",
+    "password": "비밀번호 (선택)",
+    "passwordPlaceholder": "게시물 보호용 비밀번호",
+    "passwordEditPlaceholder": "새 비밀번호 또는 빈 칸으로 두기",
+    "createLinkButton": "공유 링크 생성",
+    "creating": "생성 중...",
+    "updateButton": "수정 완료",
+    "updating": "수정 중...",
+    "successMessage": "✅ 성공! 생성된 링크:",
+    "updateSuccessMessage": "✅ 수정 성공! 공유 링크:"
+  },
+  "UploadPage": {
+    "title": "새 게시물 작성"
+  },
+  "EditPage": {
+    "title": "게시물 수정",
+    "loading": "데이터를 불러오는 중...",
+    "notFound": "게시물을 찾을 수 없습니다."
+  },
+  "LoginPage": {
+    "title": "로그인",
+    "signupSuccess": "회원가입이 성공적으로 완료되었습니다. 로그인해주세요.",
+    "email": "이메일",
+    "password": "비밀번호",
+    "loginButton": "로그인",
+    "loggingIn": "로그인 중...",
+    "noAccount": "계정이 없으신가요?",
+    "signupLink": "회원가입",
+    "error": "이메일 또는 비밀번호가 올바르지 않습니다."
+  },
+  "SignupPage": {
+    "title": "회원가입",
+    "name": "이름",
+    "email": "이메일",
+    "password": "비밀번호",
+    "signupButton": "가입하기",
+    "signingUp": "가입 중...",
+    "hasAccount": "이미 계정이 있으신가요?",
+    "loginLink": "로그인"
+  }
+}
+
+============================================================
+FILE: types\index.ts
+============================================================
+export interface Post {
   id: string;
   title: string;
   tags: string | null;
@@ -1239,95 +2449,25 @@ interface Post {
   font_family: string | null;
   password: string | null;
   created_at: string;
+  dominant_color: string | null;
+  text_color: string | null;
+  user_id?: number; // DB에서 int 타입이므로 number
 }
 
-async function getPostData(id: string): Promise<Post | null> {
-  noStore();
-  try {
-    const { rows } = await db.sql`SELECT * FROM posts WHERE id = ${id} LIMIT 1;`;
-    if (rows.length === 0) return null;
-    return rows[0] as Post;
-  } catch (error) {
-    console.error("Database query failed:", error);
-    return null;
+============================================================
+FILE: types\next-auth.d.ts
+============================================================
+import NextAuth from 'next-auth';
+
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    };
   }
 }
-
-export async function generateMetadata({ params }: { params: { id:string } }): Promise<Metadata> {
-  const post = await getPostData(params.id);
-
-  if (!post) {
-    return { title: '게시물을 찾을 수 없습니다' };
-  }
-
-  // ▼▼▼ OG 이미지 URL에 사용할 안전한 설명 텍스트 생성 ▼▼▼
-  const cleanDescriptionForOg = post.content
-    ? post.content
-        .replace(/!\[.*?\]\(.*?\)/g, '')   // Markdown 이미지 제거
-        .replace(/<img[^>]*>/gi, '')      // HTML 이미지 제거
-        .replace(/블러\[.*?\]/g, '')        // 스포일러 태그 제거
-        .replace(/[`*_{}[\]()#+\-.!]/g, '') // 일반적인 마크다운 특수 문자 제거
-        .replace(/\s+/g, ' ')             // 여러 공백을 하나로 축소
-        .trim()
-        .substring(0, 100)                // URL 길이를 위해 100자로 제한
-    : '';
-  // ▲▲▲ 여기까지 추가 ▲▲▲
-
-  // SNS 텍스트 미리보기에 표시될 설명 (기존 로직 유지)
-  const displayDescription = post.is_content_spoiler 
-    ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' 
-    : cleanDescriptionForOg || '친구로부터 공유된 게시물을 확인하세요.';
-
-  const ogImageUrl = new URL(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/og`);
-  ogImageUrl.searchParams.set('title', post.title);
-  
-  // ▼▼▼ 'artist' 파라미터에 안전하게 정제된 텍스트 사용 ▼▼▼
-  if (cleanDescriptionForOg) {
-    ogImageUrl.searchParams.set('artist', cleanDescriptionForOg);
-  }
-  // ▲▲▲ 여기까지 수정 ▲▲▲
-
-  ogImageUrl.searchParams.set('imageUrl', post.thumbnail_url);
-  ogImageUrl.searchParams.set('isBlurred', String(post.is_thumbnail_blurred));
-  ogImageUrl.searchParams.set('isSpoiler', String(post.is_content_spoiler));
-  ogImageUrl.searchParams.set('isNsfw', String(post.is_nsfw));
-  
-  if (post.tags) {
-    ogImageUrl.searchParams.set('tags', post.tags);
-  }
-
-  return {
-    title: post.title,
-    description: displayDescription,
-    openGraph: {
-      title: post.title,
-      description: displayDescription,
-      images: [ogImageUrl.toString()],
-      type: 'article',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: post.title,
-      description: displayDescription,
-      images: [ogImageUrl.toString()],
-    },
-  };
-}
-
-export default async function ViewPage({ params }: { params: { id: string } }) {
-  const post = await getPostData(params.id);
-  if (!post) notFound();
-  
-  return (
-    <main className={`flex min-h-screen items-center justify-center bg-gray-100 py-8 px-4 ${post.font_family || 'font-pretendard'}`}>
-      {post.password ? (
-        <PasswordProtect post={post} />
-      ) : (
-        <PostContent post={post} />
-      )}
-    </main>
-  );
-}
-
 
 --- END OF FILE merged_code_context.txt ---

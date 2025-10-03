@@ -1,11 +1,13 @@
+// app/[locale]/upload/ContentPreview.tsx (최종 완성)
+
 'use client';
 
+import { useState, useEffect, MouseEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeRaw from 'rehype-raw';
 import type { Pluggable } from 'unified';
-import { MouseEvent } from 'react';
 import ResizableImage from './ResizableImage';
 
 interface ContentPreviewProps {
@@ -15,6 +17,12 @@ interface ContentPreviewProps {
 }
 
 export default function ContentPreview({ content, fontClass, onImageResize }: ContentPreviewProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
     const target = e.target as HTMLElement;
     if (target.classList.contains('spoiler')) {
@@ -36,48 +44,32 @@ export default function ContentPreview({ content, fontClass, onImageResize }: Co
         className={`prose lg:prose-lg w-full max-w-none bg-white p-6 sm:p-8 rounded-lg shadow-lg border min-h-[200px] ${fontClass}`}
         onClick={handleSpoilerClick}
       >
-        {content ? (
+        {/* 서버와 초기 렌더링 시에는 이 부분을 렌더링합니다. */}
+        {!isClient && <p className="text-gray-400">미리보기를 불러오는 중...</p>}
+        
+        {/* 클라이언트에서 마운트된 후에만 ReactMarkdown을 렌더링합니다. */}
+        {isClient && content ? (
           <ReactMarkdown 
             remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
             rehypePlugins={[rehypeRaw]}
             components={{
-              p: ({ node, children }) => {
-                if (!node) {
-                  return <p>{children}</p>;
-                }
-                const firstChild = node.children[0];
-                if (
-                  node.children.length === 1 &&
-                  firstChild && 'tagName' in firstChild &&
-                  firstChild.tagName === 'img'
-                ) {
-                  return <>{children}</>;
-                }
-                return <p>{children}</p>;
-              },
-              // ▼▼▼ src가 string 타입인지 확인하는 로직 추가 ▼▼▼
               img: ({ src, alt, width }) => {
-                // src가 문자열이 아니면 렌더링하지 않음 (오류 방지)
-                if (typeof src !== 'string') {
-                  return null;
-                }
-
+                if (typeof src !== 'string') return null;
                 const currentWidth = width ? Number(width) : undefined;
                 return (
                   <ResizableImage 
-                    src={src} // 이제 src는 string 타입임이 보장됨
+                    src={src}
                     alt={alt || ''}
                     currentWidth={currentWidth}
                     onResize={onImageResize}
                   />
                 );
               }
-              // ▲▲▲ 여기까지 수정 ▲▲▲
             }}
           >
             {processedContent}
           </ReactMarkdown>
-        ) : (
+        ) : isClient && (
           <p className="text-gray-400">본문 내용이 여기에 표시됩니다.</p>
         )}
       </div>

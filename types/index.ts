@@ -12,4 +12,5 @@ export interface Post {
   created_at: string;
   dominant_color: string | null;
   text_color: string | null;
+  user_id?: number; // DB에서 int 타입이므로 number
 }

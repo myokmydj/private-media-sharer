@@ -1,0 +1,102 @@
+{
+  "Header": {
+    "welcome": "Welcome, {name}!",
+    "myPosts": "My Posts",
+    "writePost": "Write",
+    "logout": "Log Out",
+    "login": "Log In",
+    "signup": "Sign Up"
+  },
+  "LanguageSwitcher": {
+    "changeLanguage": "Language",
+    "korean": "한국어",
+    "english": "English",
+    "japanese": "日本語"
+  },
+  "HomePage": {
+    "loggedInTitle": "Welcome, {name}!",
+    "loggedInSubtitle": "What would you like to share? Start creating your story now.",
+    "newPostButton": "Create a New Post",
+    "myPostsButton": "Go to My Archive",
+    "heroTitle": "Share Your Own Story\nPrivately",
+    "heroSubtitle": "Combine images and text, set a password, or customize the social media preview to create a special link just for your friends.",
+    "startButton": "Get Started Now",
+    "featuresTitle": "Main Features",
+    "featurePrivacyTitle": "Strong Privacy",
+    "featurePrivacyDesc": "Set a password on your posts to control who can see your content.",
+    "featureSNSTitle": "Attractive SNS Preview",
+    "featureSNSDesc": "Customize the image, title, and description that appear when you share your link.",
+    "featureEditorTitle": "Flexible Content Creation",
+    "featureEditorDesc": "Use the Markdown-supported editor to freely arrange and style images and text.",
+    "featureShareTitle": "Easy Sharing",
+    "featureShareDesc": "Your completed post is generated as a single unique link, making it easy to share anywhere.",
+    "featureArchiveTitle": "Personal Archive",
+    "featureArchiveDesc": "View all your created posts at a glance, and edit or revisit them anytime.",
+    "featureOptionsTitle": "Various Options",
+    "featureOptionsDesc": "We provide various options for your content, such as NSFW, spoilers, and blur effects.",
+    "ctaTitle": "Get Started Right Now",
+    "ctaSubtitle": "You can make your story special and share it with just a few clicks.",
+    "ctaButton": "Sign Up for Free"
+  },
+  "MyPostsPage": {
+    "title": "My Post Archive",
+    "noPosts": "You haven't written any posts yet.",
+    "writeFirstPost": "Write Your First Post"
+  },
+  "FormPage": {
+    "title": "Title",
+    "tags": "Tags",
+    "tagsPlaceholder": "Enter tags separated by commas (,)",
+    "thumbnail": "Thumbnail Image",
+    "thumbnailUploading": "Uploading and analyzing thumbnail...",
+    "bodyImages": "Body Images (multiple selection possible)",
+    "bodyImagesUploading": "Uploading...",
+    "content": "Content (Markdown supported)",
+    "addSpoiler": "Add Spoiler",
+    "options": "Options",
+    "blurThumbnail": "Blur Thumbnail Image",
+    "blurThumbnailDesc": "Blurs the social media thumbnail.",
+    "spoilerContent": "Spoiler for Body Content",
+    "spoilerContentDesc": "Hides the body content on social media.",
+    "nsfw": "NSFW (Not Safe For Work)",
+    "nsfwDesc": "Completely hides the social media thumbnail.",
+    "password": "Password (Optional)",
+    "passwordPlaceholder": "Password to protect the post",
+    "passwordEditPlaceholder": "New password or leave blank",
+    "createLinkButton": "Create Share Link",
+    "creating": "Creating...",
+    "updateButton": "Update Post",
+    "updating": "Updating...",
+    "successMessage": "✅ Success! Generated link:",
+    "updateSuccessMessage": "✅ Update successful! Share link:"
+  },
+  "UploadPage": {
+    "title": "Create New Post"
+  },
+  "EditPage": {
+    "title": "Edit Post",
+    "loading": "Loading data...",
+    "notFound": "Post not found."
+  },
+  "LoginPage": {
+    "title": "Log In",
+    "signupSuccess": "Sign up was successful. Please log in.",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Log In",
+    "loggingIn": "Logging in...",
+    "noAccount": "Don't have an account?",
+    "signupLink": "Sign up",
+    "error": "Invalid email or password."
+  },
+  "SignupPage": {
+    "title": "Sign Up",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "signupButton": "Sign Up",
+    "signingUp": "Signing up...",
+    "hasAccount": "Already have an account?",
+    "loginLink": "Log in"
+  }
+}
