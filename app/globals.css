@@ -77,88 +77,87 @@
     font-display: swap;
 }
 
+/* ▼▼▼ 'Presentation' -> 'Freesentation' 으로 수정 ▼▼▼ */
 @font-face {
-    font-family: 'Presentation';
+    font-family: 'Freesentation';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-1Thin.woff2') format('woff2');
     font-weight: 100;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Presentation';
+    font-family: 'Freesentation';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-2ExtraLight.woff2') format('woff2');
     font-weight: 200;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Presentation';
+    font-family: 'Freesentation';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-3Light.woff2') format('woff2');
     font-weight: 300;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Presentation';
+    font-family: 'Freesentation';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-4Regular.woff2') format('woff2');
     font-weight: 400;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Presentation';
+    font-family: 'Freesentation';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-5Medium.woff2') format('woff2');
     font-weight: 500;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Presentation';
+    font-family: 'Freesentation';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-6SemiBold.woff2') format('woff2');
     font-weight: 600;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Presentation';
+    font-family: 'Freesentation';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-7Bold.woff2') format('woff2');
     font-weight: 700;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Presentation';
+    font-family: 'Freesentation';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-8ExtraBold.woff2') format('woff2');
     font-weight: 800;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Presentation';
+    font-family: 'Freesentation';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-9Black.woff2') format('woff2');
     font-weight: 900;
     font-display: swap;
 }
+/* ▲▲▲ 여기까지 수정 ▲▲▲ */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 
-/* ▼▼▼ 스포일러 스타일을 아래 코드로 교체 ▼▼▼ */
 .spoiler {
-  color: #6d6d6d; /* 텍스트를 투명하게 만듭니다 */
-  filter: blur(5px); /* 블러 효과를 적용합니다 (수치는 조절 가능) */
+  color: #6d6d6d;
+  filter: blur(5px);
   cursor: pointer;
   transition: all 0.3s ease-in-out;
-  /* 선택 방지를 위해 user-select를 추가할 수 있습니다 (선택 사항) */
   user-select: none; 
 }
 
 .spoiler-revealed {
-  color: inherit; /* 원래 텍스트 색상으로 복원합니다 */
-  filter: blur(0); /* 블러 효과를 제거합니다 */
+  color: inherit;
+  filter: blur(0);
   cursor: default;
   user-select: auto;
 }
-/* ▲▲▲ 여기까지 교체 ▲▲▲ */

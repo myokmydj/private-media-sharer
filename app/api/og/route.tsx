@@ -2,6 +2,7 @@ import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 import { join } from 'path';
 import * as fs from 'fs';
+import sharp from 'sharp';
 
 export const runtime = 'nodejs';
 
@@ -10,28 +11,68 @@ const fontRegularPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Med
 const pretendardBold = fs.readFileSync(fontBoldPath);
 const pretendardRegular = fs.readFileSync(fontRegularPath);
 
+function getContrastingTextColor(r: number, g: number, b: number): string {
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? '#000000' : '#FFFFFF';
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
     const title = searchParams.get('title') || '제목 없음';
-    const artist = searchParams.get('artist');
+    const artist = searchParams.get('artist'); // 원본 본문 내용 (필터링 전)
     const imageUrl = searchParams.get('imageUrl');
     const isBlurred = searchParams.get('isBlurred') === 'true';
     const isSpoiler = searchParams.get('isSpoiler') === 'true';
     const isNsfw = searchParams.get('isNsfw') === 'true';
-    // ▼▼▼ tags 파라미터 수신 및 처리 ▼▼▼
     const tagsParam = searchParams.get('tags');
     const tags = tagsParam ? tagsParam.split(',').map(tag => tag.trim()).filter(Boolean) : [];
-    // ▲▲▲ tags 파라미터 수신 및 처리 ▲▲▲
+
+    let backgroundColor = '#28234D';
+    let textColor = '#FFFFFF';
+    let tagBackgroundColor = 'rgba(255, 255, 255, 0.15)';
+    let playButtonColor = '#28234D';
+
+    if (imageUrl) {
+      try {
+        const response = await fetch(imageUrl);
+        const imageBuffer = await response.arrayBuffer();
+        const { dominant } = await sharp(Buffer.from(imageBuffer)).stats();
+        const { r, g, b } = dominant;
+        
+        backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        textColor = getContrastingTextColor(r, g, b);
+
+        if (textColor === '#FFFFFF') {
+          tagBackgroundColor = 'rgba(255, 255, 255, 0.15)';
+          playButtonColor = `rgb(${r}, ${g}, ${b})`;
+        } else {
+          tagBackgroundColor = 'rgba(0, 0, 0, 0.1)';
+          playButtonColor = `rgb(${r}, ${g}, ${b})`;
+        }
+      } catch (colorError) {
+        console.error("Failed to extract dominant color:", colorError);
+      }
+    }
+
+    // ▼▼▼ 실시간 미리보기와 동일한 텍스트 필터링 로직 추가 ▼▼▼
+    const previewText = artist
+      ? artist
+          .replace(/!\[.*?\]\(.*?\)/g, '')   // Markdown 이미지 제거
+          .replace(/<img[^>]*>/gi, '')      // HTML 이미지 제거
+          .replace(/블러\[.*?\]/g, '')        // 스포일러 태그 제거
+          .replace(/\n/g, ' ')              // 줄바꿈을 공백으로 변환
+          .trim()
+      : '';
+    // ▲▲▲ 여기까지 추가 ▲▲▲
 
     return new ImageResponse(
       (
-        <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#28234D', color: 'white', padding: '40px' }}>
+        <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: backgroundColor, color: textColor, padding: '40px' }}>
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ position: 'relative', width: 550, height: 550, display: 'flex' }}>
               {imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={imageUrl}
                   alt=""
@@ -65,12 +106,11 @@ export async function GET(req: NextRequest) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '40px', flex: 1, justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.8 }}>
-                <svg xmlns="http://www.w3.org/2000/svg" height="80" width="80" viewBox="0 0 384 512" fill="white">
-                  <path d="M32 64C32 46.3 46.3 32 64 32H192c17.7 0 32 14.3 32 32V288c0 35.3-28.7 64-64 64s-64-28.7-64-64V160H64c-17.7 0-32-14.3-32-32s14.3-32 32-32h64V288c0 17.7 14.3 32 32 32s32-14.3 32-32V64H64V64zM0 448c0-17.7 14.3-32 32-32H288c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32z"/>
+                <svg xmlns="http://www.w3.org/2000/svg" height="80" width="80" viewBox="0 0 576 512" fill={textColor}>
+                  <path d="M305 151.1L320 171.8L335 151.1C360 116.5 400.2 96 442.9 96C516.4 96 576 155.6 576 229.1L576 231.7C576 343.9 436.1 474.2 363.1 529.9C350.7 539.3 335.5 544 320 544C304.5 544 289.2 539.4 276.9 529.9C203.9 474.2 64 343.9 64 231.7L64 229.1C64 155.6 123.6 96 197.1 96C239.8 96 280 116.5 305 151.1z"/>
                 </svg>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', fontFamily: '"PretendardJP-Black"' }}>
-                {/* ▼▼▼ 태그 렌더링 로직 추가 ▼▼▼ */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
                   {tags.map((tag) => (
                     <div
@@ -78,7 +118,7 @@ export async function GET(req: NextRequest) {
                       style={{
                         display: 'flex',
                         padding: '6px 16px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        backgroundColor: tagBackgroundColor,
                         borderRadius: '9999px',
                         fontSize: '28px',
                         fontFamily: '"PretendardJP-Medium"',
@@ -90,11 +130,11 @@ export async function GET(req: NextRequest) {
                     </div>
                   ))}
                 </div>
-                {/* ▲▲▲ 태그 렌더링 로직 추가 ▲▲▲ */}
                 <div style={{ fontSize: '60px', fontWeight: 'bold', letterSpacing: '-0.02em' }}>
                   {title}
                 </div>
-                {artist && (
+                {/* ▼▼▼ artist 대신 정제된 previewText를 사용 ▼▼▼ */}
+                {previewText && (
                   <div style={{
                     fontSize: '40px',
                     marginTop: '10px',
@@ -104,14 +144,14 @@ export async function GET(req: NextRequest) {
                     fontFamily: '"PretendardJP-Medium"',
                     fontWeight: 400,
                   }}>
-                    {isSpoiler ? '내용이 가려졌습니다.' : artist}
+                    {isSpoiler ? '내용이 가려졌습니다.' : previewText}
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100px', height: '100px', backgroundColor: 'white', borderRadius: '50%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100px', height: '100px', backgroundColor: textColor, borderRadius: '50%' }}>
                   <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 5.13965V18.8604C8 19.56 8.66274 20.0168 9.30852 19.642L20.6915 12.7816C21.3373 12.4078 21.3373 11.5922 20.6915 11.2184L9.30852 4.35795C8.66274 3.98317 8 4.44004 8 5.13965Z" fill="#28234D"/>
+                    <path d="M8 5.13965V18.8604C8 19.56 8.66274 20.0168 9.30852 19.642L20.6915 12.7816C21.3373 12.4078 21.3373 11.5922 20.6915 11.2184L9.30852 4.35795C8.66274 3.98317 8 4.44004 8 5.13965Z" fill={playButtonColor}/>
                   </svg>
                 </div>
               </div>

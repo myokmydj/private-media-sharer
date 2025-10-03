@@ -13,6 +13,8 @@
     "@aws-sdk/s3-request-presigner": "^3.901.0",
     "@vercel/postgres": "^0.10.0",
     "bcrypt": "^6.0.0",
+    "fast-average-color": "^9.5.0",
+    "lucide-react": "^0.544.0",
     "nanoid": "^5.1.6",
     "next": "15.5.4",
     "react": "19.1.0",
