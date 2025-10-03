@@ -8,9 +8,7 @@ import PasswordProtect from './PasswordProtect';
 interface Post {
   id: string;
   title: string;
-  // ▼▼▼ tags 타입 추가 ▼▼▼
   tags: string | null;
-  // ▲▲▲ tags 타입 추가 ▲▲▲
   content: string;
   thumbnail_url: string;
   is_thumbnail_blurred: boolean;
@@ -40,24 +38,41 @@ export async function generateMetadata({ params }: { params: { id:string } }): P
     return { title: '게시물을 찾을 수 없습니다' };
   }
 
-  const originalDescription = post.content ? post.content.replace(/\n/g, ' ').substring(0, 50) + (post.content.length > 50 ? '...' : '') : '';
+  // ▼▼▼ OG 이미지 URL에 사용할 안전한 설명 텍스트 생성 ▼▼▼
+  const cleanDescriptionForOg = post.content
+    ? post.content
+        .replace(/!\[.*?\]\(.*?\)/g, '')   // Markdown 이미지 제거
+        .replace(/<img[^>]*>/gi, '')      // HTML 이미지 제거
+        .replace(/블러\[.*?\]/g, '')        // 스포일러 태그 제거
+        .replace(/[`*_{}[\]()#+\-.!]/g, '') // 일반적인 마크다운 특수 문자 제거
+        .replace(/\s+/g, ' ')             // 여러 공백을 하나로 축소
+        .trim()
+        .substring(0, 100)                // URL 길이를 위해 100자로 제한
+    : '';
+  // ▲▲▲ 여기까지 추가 ▲▲▲
+
+  // SNS 텍스트 미리보기에 표시될 설명 (기존 로직 유지)
   const displayDescription = post.is_content_spoiler 
     ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' 
-    : originalDescription || '친구로부터 공유된 게시물을 확인하세요.';
+    : cleanDescriptionForOg || '친구로부터 공유된 게시물을 확인하세요.';
 
   const ogImageUrl = new URL(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/og`);
   ogImageUrl.searchParams.set('title', post.title);
-  if (originalDescription) ogImageUrl.searchParams.set('artist', originalDescription);
+  
+  // ▼▼▼ 'artist' 파라미터에 안전하게 정제된 텍스트 사용 ▼▼▼
+  if (cleanDescriptionForOg) {
+    ogImageUrl.searchParams.set('artist', cleanDescriptionForOg);
+  }
+  // ▲▲▲ 여기까지 수정 ▲▲▲
+
   ogImageUrl.searchParams.set('imageUrl', post.thumbnail_url);
   ogImageUrl.searchParams.set('isBlurred', String(post.is_thumbnail_blurred));
   ogImageUrl.searchParams.set('isSpoiler', String(post.is_content_spoiler));
   ogImageUrl.searchParams.set('isNsfw', String(post.is_nsfw));
   
-  // ▼▼▼ tags 파라미터 추가 ▼▼▼
   if (post.tags) {
     ogImageUrl.searchParams.set('tags', post.tags);
   }
-  // ▲▲▲ tags 파라미터 추가 ▲▲▲
 
   return {
     title: post.title,
@@ -81,8 +96,6 @@ export default async function ViewPage({ params }: { params: { id: string } }) {
   const post = await getPostData(params.id);
   if (!post) notFound();
   
-  // Post 타입에 tags가 추가되었으므로, PasswordProtect와 PostContent에도 전달됩니다.
-  // (PasswordProtect.tsx의 Post 타입도 수정이 필요하지만, 실제 사용하지 않으므로 생략 가능)
   return (
     <main className={`flex min-h-screen items-center justify-center bg-gray-100 py-8 px-4 ${post.font_family || 'font-pretendard'}`}>
       {post.password ? (
