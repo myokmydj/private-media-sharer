@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node ./scripts/convert-fonts.js",
+    // "prebuild": "node ./scripts/convert-fonts.js", // 이 줄을 삭제하거나 주석 처리
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
