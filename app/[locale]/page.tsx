@@ -1,7 +1,7 @@
 // app/[locale]/page.tsx (전체 코드)
 
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import Link from 'next/link';
 import { getDictionary } from '@/lib/dictionary'; // 1. 우리만의 함수를 import 합니다.
 import { LockKeyhole, PencilLine, Share2, ImageIcon, Eye, BookUser } from 'lucide-react';

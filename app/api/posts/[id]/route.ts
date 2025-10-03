@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 
 // GET: 특정 게시물 정보 가져오기 (수정 페이지용)
 export async function GET(request: Request, { params }: { params: { id: string } }) {
