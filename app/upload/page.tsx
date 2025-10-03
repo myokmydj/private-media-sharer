@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, ChangeEvent, FormEvent, useRef } from 'react';
-import Image from 'next/image';
 import OgPreview from './OgPreview';
 import ContentPreview from './ContentPreview';
 

@@ -15,6 +15,7 @@ interface ContentPreviewProps {
 }
 
 export default function ContentPreview({ content, fontClass, onImageResize }: ContentPreviewProps) {
+  // ... (handleSpoilerClick, processContentForSpoilers 함수는 변경 없음) ...
   const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
     const target = e.target as HTMLElement;
     if (target.classList.contains('spoiler')) {
@@ -41,17 +42,19 @@ export default function ContentPreview({ content, fontClass, onImageResize }: Co
             remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
             rehypePlugins={[rehypeRaw]}
             components={{
-              // ▼▼▼ p 태그 래퍼를 제거하는 로직 추가 ▼▼▼
               p: ({ node, children }) => {
-                // p 태그의 자식 노드가 1개이고, 그 자식이 img 태그일 경우
-                if (node.children.length === 1 && (node.children[0] as any).tagName === 'img') {
-                  // p 태그 없이 자식(이미지)만 렌더링
+                // ▼▼▼ 'any' 대신 타입 안전적인 코드로 수정 ▼▼▼
+                const firstChild = node.children[0];
+                if (
+                  node.children.length === 1 &&
+                  firstChild && 'tagName' in firstChild &&
+                  firstChild.tagName === 'img'
+                ) {
                   return <>{children}</>;
                 }
-                // 그 외의 경우에는 일반적인 p 태그로 렌더링
+                // ▲▲▲ 여기까지 수정 ▲▲▲
                 return <p>{children}</p>;
               },
-              // ▲▲▲ 여기까지 추가 ▲▲▲
               img: ({ src, alt, width }) => {
                 const currentWidth = width ? Number(width) : undefined;
                 return (
