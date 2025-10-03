@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "prebuild": "node ./scripts/convert-fonts.js",
+    "prebuild": "node ./scripts/convert-fonts.js && npm install --arch=x64 --platform=linux sharp",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"
