@@ -36,29 +36,37 @@ export async function generateMetadata({ params }: { params: { id:string } }): P
     return { title: '게시물을 찾을 수 없습니다' };
   }
 
-  const artistName = post.content ? post.content.replace(/\n/g, ' ').substring(0, 50) + (post.content.length > 50 ? '...' : '') : '';
-  
+  // --- 수정 후 코드 ---
+  // 1. 스포일러 여부에 따라 표시될 설명을 결정합니다.
+  const originalDescription = post.content ? post.content.replace(/\n/g, ' ').substring(0, 50) + (post.content.length > 50 ? '...' : '') : '';
+  const displayDescription = post.is_content_spoiler 
+    ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' 
+    : originalDescription || '친구로부터 공유된 게시물을 확인하세요.';
+
   const ogImageUrl = new URL(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/og`);
   ogImageUrl.searchParams.set('title', post.title);
-  if (artistName) ogImageUrl.searchParams.set('artist', artistName);
+  
+  // OG 이미지 생성기에는 원본 내용을 보내 스포일러 처리를 맡깁니다.
+  if (originalDescription) ogImageUrl.searchParams.set('artist', originalDescription);
+  
   ogImageUrl.searchParams.set('imageUrl', post.thumbnail_url);
-  // 👇 새로운 파라미터 전달
   ogImageUrl.searchParams.set('isBlurred', String(post.is_thumbnail_blurred));
   ogImageUrl.searchParams.set('isSpoiler', String(post.is_content_spoiler));
 
   return {
     title: post.title,
-    description: artistName || '친구로부터 공유된 게시물을 확인하세요.',
+    // 2. 결정된 설명을 모든 description 필드에 적용합니다.
+    description: displayDescription,
     openGraph: {
       title: post.title,
-      description: artistName || '친구로부터 공유된 게시물을 확인하세요.',
+      description: displayDescription,
       images: [ogImageUrl.toString()],
       type: 'article',
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
-      description: artistName || '친구로부터 공유된 게시물을 확인하세요.',
+      description: displayDescription,
       images: [ogImageUrl.toString()],
     },
   };
