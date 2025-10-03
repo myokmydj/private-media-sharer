@@ -2,26 +2,26 @@
 
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
+import { join } from 'path';
+import * as fs from 'fs';
 import sharp from 'sharp';
 
 export const runtime = 'nodejs';
 
-// --- Vercel 배포 환경에서 안정적으로 폰트를 로드하기 위해 fetch 방식으로 변경 ---
-// Vercel 환경 변수를 기반으로 기본 URL을 결정합니다.
-const baseUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : 'http://localhost:3000';
-
-// 함수 외부에서 폰트 로딩을 시작하여 초기화 시 한 번만 실행되도록 합니다.
-const pretendardBoldPromise = fetch(
-  new URL('/fonts/PretendardJP-Black.otf', baseUrl)
-).then((res) => res.arrayBuffer());
-
-const pretendardRegularPromise = fetch(
-  new URL('/fonts/PretendardJP-Medium.otf', baseUrl)
-).then((res) => res.arrayBuffer());
+// --- 파일 시스템에서 폰트를 직접, 동기적으로 로드합니다. (가장 빠름) ---
+// next.config.ts 설정으로 인해 배포 환경에서도 이 파일들을 찾을 수 있습니다.
+let pretendardBold: Buffer;
+let pretendardRegular: Buffer;
+try {
+  const fontBoldPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Black.otf');
+  const fontRegularPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Medium.otf');
+  pretendardBold = fs.readFileSync(fontBoldPath);
+  pretendardRegular = fs.readFileSync(fontRegularPath);
+} catch (fontError) {
+  console.error("치명적 오류: OG 이미지 폰트를 로드할 수 없습니다.", fontError);
+  // 폰트가 없으면 OG 이미지를 생성할 수 없으므로, 서버 시작 시점에서 에러를 인지할 수 있도록 합니다.
+}
 // --- 여기까지 수정 ---
-
 
 function getContrastingTextColor(r: number, g: number, b: number): string {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
@@ -30,12 +30,10 @@ function getContrastingTextColor(r: number, g: number, b: number): string {
 
 export async function GET(req: NextRequest) {
   try {
-    // --- 핸들러 내부에서 await하여 폰트 데이터 사용 ---
-    const [pretendardBold, pretendardRegular] = await Promise.all([
-      pretendardBoldPromise,
-      pretendardRegularPromise,
-    ]);
-    // --- 여기까지 수정 ---
+    // 폰트 로딩 실패 시 에러 응답
+    if (!pretendardBold || !pretendardRegular) {
+      throw new Error("서버에 폰트 파일이 로드되지 않았습니다. 빌드 설정을 확인하세요.");
+    }
     
     const { searchParams } = new URL(req.url);
 
@@ -135,7 +133,7 @@ export async function GET(req: NextRequest) {
     if (e instanceof Error) {
       errorMessage = e.message;
     }
-    console.error(`OG Image generation failed: ${errorMessage}`);
+    console.error(`OG 이미지 생성 실패: ${errorMessage}`);
     return new NextResponse(`Failed to generate the image: ${errorMessage}`, { status: 500 });
   }
 }
