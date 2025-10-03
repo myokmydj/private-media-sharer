@@ -6,14 +6,15 @@ import bcrypt from 'bcrypt';
 export async function POST(request: Request) {
   try {
     const { 
-      title, 
+      title,
+      // ▼▼▼ tags 값 수신 ▼▼▼
+      tags,
+      // ▲▲▲ tags 값 수신 ▲▲▲
       content, 
       thumbnailUrl, 
       isThumbnailBlurred, 
       isContentSpoiler, 
-      // ▼▼▼ isNsfw 값 수신 ▼▼▼
       isNsfw,
-      // ▲▲▲ isNsfw 값 수신 ▲▲▲
       selectedFont,
       password
     } = await request.json();
@@ -31,10 +32,10 @@ export async function POST(request: Request) {
     const id = nanoid();
 
     await db.sql`
-      -- ▼▼▼ is_nsfw 컬럼 추가 ▼▼▼
-      INSERT INTO posts (id, title, content, thumbnail_url, is_thumbnail_blurred, is_content_spoiler, is_nsfw, font_family, password)
-      VALUES (${id}, ${title}, ${content}, ${thumbnailUrl}, ${isThumbnailBlurred}, ${isContentSpoiler}, ${isNsfw}, ${selectedFont}, ${hashedPassword});
-      -- ▲▲▲ is_nsfw 컬럼 추가 ▲▲▲
+      -- ▼▼▼ tags 컬럼 추가 ▼▼▼
+      INSERT INTO posts (id, title, tags, content, thumbnail_url, is_thumbnail_blurred, is_content_spoiler, is_nsfw, font_family, password)
+      VALUES (${id}, ${title}, ${tags}, ${content}, ${thumbnailUrl}, ${isThumbnailBlurred}, ${isContentSpoiler}, ${isNsfw}, ${selectedFont}, ${hashedPassword});
+      -- ▲▲▲ tags 컬럼 추가 ▲▲▲
     `;
 
     const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';

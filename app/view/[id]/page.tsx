@@ -8,20 +8,20 @@ import PasswordProtect from './PasswordProtect';
 interface Post {
   id: string;
   title: string;
+  // ▼▼▼ tags 타입 추가 ▼▼▼
+  tags: string | null;
+  // ▲▲▲ tags 타입 추가 ▲▲▲
   content: string;
   thumbnail_url: string;
   is_thumbnail_blurred: boolean;
   is_content_spoiler: boolean;
-  // ▼▼▼ is_nsfw 타입 추가 ▼▼▼
   is_nsfw: boolean;
-  // ▲▲▲ is_nsfw 타입 추가 ▲▲▲
   font_family: string | null;
   password: string | null;
   created_at: string;
 }
 
 async function getPostData(id: string): Promise<Post | null> {
-  // ... (함수 내용은 변경 없음) ...
   noStore();
   try {
     const { rows } = await db.sql`SELECT * FROM posts WHERE id = ${id} LIMIT 1;`;
@@ -51,12 +51,15 @@ export async function generateMetadata({ params }: { params: { id:string } }): P
   ogImageUrl.searchParams.set('imageUrl', post.thumbnail_url);
   ogImageUrl.searchParams.set('isBlurred', String(post.is_thumbnail_blurred));
   ogImageUrl.searchParams.set('isSpoiler', String(post.is_content_spoiler));
-  // ▼▼▼ isNsfw 파라미터 추가 ▼▼▼
   ogImageUrl.searchParams.set('isNsfw', String(post.is_nsfw));
-  // ▲▲▲ isNsfw 파라미터 추가 ▲▲▲
+  
+  // ▼▼▼ tags 파라미터 추가 ▼▼▼
+  if (post.tags) {
+    ogImageUrl.searchParams.set('tags', post.tags);
+  }
+  // ▲▲▲ tags 파라미터 추가 ▲▲▲
 
   return {
-    // ... (title, description, openGraph, twitter 등은 변경 없음) ...
     title: post.title,
     description: displayDescription,
     openGraph: {
@@ -74,11 +77,12 @@ export async function generateMetadata({ params }: { params: { id:string } }): P
   };
 }
 
-// ... (ViewPage 컴포넌트는 변경 없음) ...
 export default async function ViewPage({ params }: { params: { id: string } }) {
   const post = await getPostData(params.id);
   if (!post) notFound();
   
+  // Post 타입에 tags가 추가되었으므로, PasswordProtect와 PostContent에도 전달됩니다.
+  // (PasswordProtect.tsx의 Post 타입도 수정이 필요하지만, 실제 사용하지 않으므로 생략 가능)
   return (
     <main className={`flex min-h-screen items-center justify-center bg-gray-100 py-8 px-4 ${post.font_family || 'font-pretendard'}`}>
       {post.password ? (
