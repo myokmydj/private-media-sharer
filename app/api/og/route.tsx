@@ -1,11 +1,11 @@
+// api/og/route.tsx (원래 코드로 복원)
+
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
 import { pretendardBold, pretendardRegular } from '@/.generated/fonts';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-// 더 이상 사용하지 않으므로 SVG 관련 변수들을 모두 삭제합니다.
 
 export async function GET(req: NextRequest) {
   try {
@@ -59,7 +59,6 @@ export async function GET(req: NextRequest) {
               )}
               {isNsfw && (
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {/* ▼▼▼ 1. NSFW 아이콘을 굵은 텍스트로 교체 ▼▼▼ */}
                   <div style={{
                     fontFamily: '"PretendardJP-Black"',
                     fontSize: '120px',
@@ -73,7 +72,6 @@ export async function GET(req: NextRequest) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '40px', flex: 1, justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.8 }}>
-                {/* ▼▼▼ 2. 상단 하트 아이콘을 굵은 텍스트로 교체 ▼▼▼ */}
                 <div style={{
                   fontFamily: '"PretendardJP-Black"',
                   fontSize: '36px',
