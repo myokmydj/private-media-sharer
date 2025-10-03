@@ -2,26 +2,14 @@
 
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
-import { join } from 'path';
-import * as fs from 'fs';
 import sharp from 'sharp';
+// ▼▼▼ 파일 시스템 대신 생성된 TS 모듈에서 폰트 데이터를 직접 가져옵니다 ▼▼▼
+import { pretendardBold, pretendardRegular } from '@/lib/fonts';
+// ▲▲▲ 여기까지 수정 ▲▲▲
 
 export const runtime = 'nodejs';
 
-// --- 파일 시스템에서 폰트를 직접, 동기적으로 로드합니다. (가장 빠름) ---
-// next.config.ts 설정으로 인해 배포 환경에서도 이 파일들을 찾을 수 있습니다.
-let pretendardBold: Buffer;
-let pretendardRegular: Buffer;
-try {
-  const fontBoldPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Black.otf');
-  const fontRegularPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Medium.otf');
-  pretendardBold = fs.readFileSync(fontBoldPath);
-  pretendardRegular = fs.readFileSync(fontRegularPath);
-} catch (fontError) {
-  console.error("치명적 오류: OG 이미지 폰트를 로드할 수 없습니다.", fontError);
-  // 폰트가 없으면 OG 이미지를 생성할 수 없으므로, 서버 시작 시점에서 에러를 인지할 수 있도록 합니다.
-}
-// --- 여기까지 수정 ---
+// 폰트 데이터는 이미 메모리에 로드되어 있으므로 추가 로딩이 필요 없습니다.
 
 function getContrastingTextColor(r: number, g: number, b: number): string {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
@@ -30,11 +18,6 @@ function getContrastingTextColor(r: number, g: number, b: number): string {
 
 export async function GET(req: NextRequest) {
   try {
-    // 폰트 로딩 실패 시 에러 응답
-    if (!pretendardBold || !pretendardRegular) {
-      throw new Error("서버에 폰트 파일이 로드되지 않았습니다. 빌드 설정을 확인하세요.");
-    }
-    
     const { searchParams } = new URL(req.url);
 
     const title = searchParams.get('title') || '제목 없음';
@@ -125,7 +108,7 @@ export async function GET(req: NextRequest) {
           </div>
         </div>
       ),
-      { width: 1200, height: 630, fonts: [{ name: 'PretendardJP-Black', data: pretendardBold, style: 'normal', weight: 800 }, { name: 'PretendardJP-Medium', data: pretendardRegular, style: 'normal', weight: 400 }] },
+      { width: 1200, height: 630, fonts: [{ name: 'PretendardJP-Black', data: pretendardBold.buffer, style: 'normal', weight: 800 }, { name: 'PretendardJP-Medium', data: pretendardRegular.buffer, style: 'normal', weight: 400 }] },
     );
 
   } catch (e: unknown) {
