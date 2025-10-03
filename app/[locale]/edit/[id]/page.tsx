@@ -2,8 +2,8 @@
 
 import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import OgPreview from '@/app/upload/OgPreview'; // 기존 컴포넌트 재사용
-import ContentPreview from '@/app/upload/ContentPreview'; // 기존 컴포넌트 재사용
+import OgPreview from '@/app/[locale]/upload/OgPreview';
+import ContentPreview from '@/app/[locale]/upload/ContentPreview';
 import { FastAverageColor } from 'fast-average-color';
 import type { Post } from '@/types'; // Post 타입 임포트
 
