@@ -2,11 +2,13 @@ import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
 import { pretendardBold, pretendardRegular } from '@/.generated/fonts';
 
-// ▼▼▼ 이 한 줄이 모든 문제를 해결합니다 ▼▼▼
 export const dynamic = 'force-dynamic';
-// ▲▲▲ 여기까지 추가 ▲▲▲
-
 export const runtime = 'nodejs';
+
+// ▼▼▼ 2. 깨진 아이콘 문제를 해결하기 위해 SVG를 문자열로 정의합니다 ▼▼▼
+const nsfwIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" height="150" width="150" viewBox="0 0 640 512" fill="white"><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7C559.7 341.5 584 285.4 597.8 232.2c1.1-4.4 1.1-9.1 0-13.5C580.5 164.6 539.4 96 468.6 41.2C408.4-1.9 344.7-13.5 283.5 1.7L38.8 5.1zM240 128a128 128 0 0 0-93.5 210.3L209.2 282c-10-24-8.5-52.3 5.8-74.3s38.3-36.8 63-38.2l51.9-41.5C301.7 132 272.1 128 240 128zM320 384c-35.3 0-68.7-12.1-96.6-33.9L262 311.9c13.4 10.9 30.6 17.1 48.8 17.1c52.9 0 96-43.1 96-96c0-18.2-5.2-35.4-14.2-50.2L427.2 215c15.2 21.5 24.8 47.3 24.8 74.2c0 88.4-71.6 160-160 160z"/></svg>`;
+const nsfwIconDataUri = `data:image/svg+xml;base64,${Buffer.from(nsfwIconSvg).toString('base64')}`;
+// ▲▲▲ 여기까지 추가 ▲▲▲
 
 export async function GET(req: NextRequest) {
   try {
@@ -51,12 +53,19 @@ export async function GET(req: NextRequest) {
                   alt=""
                   width={550}
                   height={550}
-                  style={{ borderRadius: '20px', objectFit: 'cover', filter: isBlurred ? 'blur(40px)' : 'none' }}
+                  style={{
+                    borderRadius: '20px',
+                    objectFit: 'cover',
+                    // ▼▼▼ 1. isBlurred 또는 isNsfw일 때 블러 효과 적용 ▼▼▼
+                    filter: (isBlurred || isNsfw) ? 'blur(40px)' : 'none'
+                  }}
                 />
               )}
               {isNsfw && (
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" height="150" width="150" viewBox="0 0 640 512" fill="white"><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7C559.7 341.5 584 285.4 597.8 232.2c1.1-4.4 1.1-9.1 0-13.5C580.5 164.6 539.4 96 468.6 41.2C408.4-1.9 344.7-13.5 283.5 1.7L38.8 5.1zM240 128a128 128 0 0 0-93.5 210.3L209.2 282c-10-24-8.5-52.3 5.8-74.3s38.3-36.8 63-38.2l51.9-41.5C301.7 132 272.1 128 240 128zM320 384c-35.3 0-68.7-12.1-96.6-33.9L262 311.9c13.4 10.9 30.6 17.1 48.8 17.1c52.9 0 96-43.1 96-96c0-18.2-5.2-35.4-14.2-50.2L427.2 215c15.2 21.5 24.8 47.3 24.8 74.2c0 88.4-71.6 160-160 160z"/></svg>
+                  {/* ▼▼▼ 2. 깨진 SVG 대신 데이터 URI를 사용하는 img 태그로 교체 ▼▼▼ */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={nsfwIconDataUri} width="150" height="150" alt="NSFW content" />
                 </div>
               )}
             </div>
