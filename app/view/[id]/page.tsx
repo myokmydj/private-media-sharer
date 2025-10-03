@@ -76,8 +76,9 @@ export default async function ViewPage({ params }: { params: { id: string } }) {
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
-            // 👇 변경된 부분: node -> _node, eslint-disable 주석 추가
-            img: ({_node, ...props}) => (
+            // 👇 여기가 최종 수정된 부분입니다.
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            img: ({ node, ...props }) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img {...props} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} alt="" />
             ),
