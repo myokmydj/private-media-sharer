@@ -2,19 +2,9 @@
 
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
-import sharp from 'sharp';
-// ▼▼▼ 파일 시스템 대신 생성된 TS 모듈에서 폰트 데이터를 직접 가져옵니다 ▼▼▼
 import { pretendardBold, pretendardRegular } from '@/.generated/fonts';
-// ▲▲▲ 여기까지 수정 ▲▲▲
 
 export const runtime = 'nodejs';
-
-// 폰트 데이터는 이미 메모리에 로드되어 있으므로 추가 로딩이 필요 없습니다.
-
-function getContrastingTextColor(r: number, g: number, b: number): string {
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? '#000000' : '#FFFFFF';
-}
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,35 +19,18 @@ export async function GET(req: NextRequest) {
     const tagsParam = searchParams.get('tags');
     const tags = tagsParam ? tagsParam.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
-    let backgroundColor = '#28234D';
-    let textColor = '#FFFFFF';
+    // ▼▼▼ 실시간 분석 대신 URL 파라미터에서 색상 값을 직접 받습니다 ▼▼▼
+    const backgroundColor = searchParams.get('bgColor') || '#28234D';
+    const textColor = searchParams.get('textColor') || '#FFFFFF';
+    // ▲▲▲ 여기까지 수정 ▲▲▲
+
     let tagBackgroundColor = 'rgba(255, 255, 255, 0.15)';
-    let playButtonColor = '#28234D';
-
-    if (imageUrl) {
-      try {
-        const response = await fetch(imageUrl, { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-        }
-        const imageBuffer = await response.arrayBuffer();
-        const { dominant } = await sharp(Buffer.from(imageBuffer)).stats();
-        const { r, g, b } = dominant;
-        
-        backgroundColor = `rgb(${r}, ${g}, ${b})`;
-        textColor = getContrastingTextColor(r, g, b);
-
-        if (textColor === '#FFFFFF') {
-          tagBackgroundColor = 'rgba(255, 255, 255, 0.15)';
-        } else {
-          tagBackgroundColor = 'rgba(0, 0, 0, 0.1)';
-        }
-        playButtonColor = `rgb(${r}, ${g}, ${b})`;
-
-      } catch (colorError) {
-        console.error("Failed to extract dominant color:", colorError);
-      }
+    if (textColor === '#000000') {
+      tagBackgroundColor = 'rgba(0, 0, 0, 0.1)';
     }
+    const playButtonColor = backgroundColor;
+
+    // sharp를 이용한 실시간 색상 분석 로직 전체 삭제!
 
     const previewText = artist
       ? artist
@@ -68,6 +41,8 @@ export async function GET(req: NextRequest) {
           .trim()
       : '';
 
+    // ... ImageResponse JSX 부분은 기존과 동일하므로 생략 ...
+    // (backgroundColor와 textColor 변수를 그대로 사용하면 됩니다)
     return new ImageResponse(
       (
         <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: backgroundColor, color: textColor, padding: '40px' }}>
