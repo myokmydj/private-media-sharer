@@ -2,22 +2,12 @@
 
 import { useState, FormEvent } from 'react';
 import PostContent from './PostContent';
+import type { Post } from '@/types'; // Post 타입을 import 합니다.
 
-// Post 타입을 page.tsx와 동일하게 정의
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  thumbnail_url: string;
-  is_thumbnail_blurred: boolean;
-  is_content_spoiler: boolean;
-  is_nsfw: boolean; // is_nsfw 추가 (타입 일관성)
-  font_family: string | null;
-  password: string | null;
-  created_at: string;
-}
+// Post 인터페이스를 여기서 제거합니다.
 
 export default function PasswordProtect({ post }: { post: Post }) {
+  // ... 나머지 코드는 동일 ...
   const [isVerified, setIsVerified] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [error, setError] = useState('');

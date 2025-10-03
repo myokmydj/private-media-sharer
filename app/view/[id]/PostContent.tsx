@@ -6,21 +6,12 @@ import remarkBreaks from 'remark-breaks';
 import rehypeRaw from 'rehype-raw';
 import type { Pluggable } from 'unified';
 import { MouseEvent } from 'react';
+import type { Post } from '@/types'; // Post 타입을 import 합니다.
 
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  thumbnail_url: string;
-  is_thumbnail_blurred: boolean;
-  is_content_spoiler: boolean;
-  font_family: string | null;
-  password: string | null;
-  created_at: string;
-}
+// Post 인터페이스를 여기서 제거합니다.
 
 export default function PostContent({ post }: { post: Post }) {
-  
+  // ... 나머지 코드는 동일 ...
   const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
     const target = e.target as HTMLElement;
     if (target.classList.contains('spoiler')) {
@@ -45,13 +36,10 @@ export default function PostContent({ post }: { post: Post }) {
         remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
         rehypePlugins={[rehypeRaw]}
         components={{ 
-          // ▼▼▼ 경고 해결을 위해 코드 수정 ▼▼▼
-          'img': ({ ...props }) => ( // 1. 사용하지 않는 'node' 제거
-            // 2. img 태그 경고를 무시하는 주석 추가
+          'img': ({ ...props }) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img {...props} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} alt="" /> 
           )
-          // ▲▲▲ 여기까지 수정 ▲▲▲
         }}
       >
         {processedContent}
