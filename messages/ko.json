@@ -1,6 +1,7 @@
 {
   "Header": {
     "welcome": "환영합니다, {name}님",
+    "myProfile": "내 프로필", // 추가
     "myPosts": "내 포스트",
     "writePost": "글쓰기",
     "logout": "로그아웃",

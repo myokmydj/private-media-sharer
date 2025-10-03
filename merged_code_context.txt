@@ -769,17 +769,24 @@ export default async function AdminPage() {
 ============================================================
 FILE: app\[locale]\edit\[id]\page.tsx
 ============================================================
+// app/[locale]/edit/[id]/page.tsx
+
 'use client';
 
-import { useState, useEffect, FormEvent, useRef } from 'react';
+import { useState, useEffect, FormEvent, useRef, ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import OgPreview from '@/app/[locale]/upload/OgPreview';
 import ContentPreview from '@/app/[locale]/upload/ContentPreview';
 import { FastAverageColor } from 'fast-average-color';
-import type { Post } from '@/types'; // Post 타입 임포트
+import type { Post } from '@/types';
 
 function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Post 타입에 visibility 속성 추가 필요 (types/index.ts)
+interface EditablePost extends Post {
+  visibility?: string;
 }
 
 export default function EditPage() {
@@ -787,10 +794,10 @@ export default function EditPage() {
   const params = useParams();
   const { id } = params;
 
-  const [post, setPost] = useState<Post | null>(null);
+  const [post, setPost] = useState<EditablePost | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // 폼 상태들 (기존 upload 페이지와 동일)
+  // Form states
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [content, setContent] = useState('');
@@ -801,14 +808,14 @@ export default function EditPage() {
   const [isNsfw, setIsNsfw] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [generatedLink, setGeneratedLink] = useState('');
   const [error, setError] = useState('');
   const [selectedFont, setSelectedFont] = useState('font-pretendard');
   const [password, setPassword] = useState('');
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const [dominantColor, setDominantColor] = useState<string | null>(null);
   const [textColor, setTextColor] = useState<string | null>(null);
-
+  const [visibility, setVisibility] = useState('public');
+  
   const fontClasses: { [key: string]: string } = {
     'font-paperozi': '페이퍼로지',
     'font-pretendard': '프리텐다드',
@@ -816,7 +823,6 @@ export default function EditPage() {
     'font-freesentation': '프리젠테이션',
   };
 
-  // 1. 페이지 로드 시 기존 포스트 데이터 불러오기
   useEffect(() => {
     if (!id) return;
 
@@ -824,11 +830,12 @@ export default function EditPage() {
       try {
         const res = await fetch(`/api/posts/${id}`);
         if (!res.ok) {
-          throw new Error('게시물을 불러오는데 실패했습니다.');
+          const errorData = await res.json();
+          throw new Error(errorData.error || '게시물을 불러오는데 실패했습니다.');
         }
-        const data: Post = await res.json();
+        const data: EditablePost = await res.json();
+        
         setPost(data);
-        // 폼 상태를 불러온 데이터로 채우기
         setTitle(data.title);
         setTags(data.tags || '');
         setContent(data.content);
@@ -839,10 +846,9 @@ export default function EditPage() {
         setSelectedFont(data.font_family || 'font-pretendard');
         setDominantColor(data.dominant_color);
         setTextColor(data.text_color);
-        // 비밀번호는 보안상 불러오지 않음. 변경시에만 입력.
+        setVisibility(data.visibility || 'public');
       } catch (err: any) {
         setError(err.message);
-        // 권한 없음 등의 에러 처리
         if (err.message.includes('권한')) {
           setTimeout(() => router.push('/my-posts'), 2000);
         }
@@ -854,23 +860,18 @@ export default function EditPage() {
     fetchPost();
   }, [id, router]);
 
-  const handleThumbnailUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     setIsThumbnailUploading(true);
     setError('');
-
     const formData = new FormData();
     formData.append('file', file);
-
     try {
       const response = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-
       setThumbnailUrl(data.url);
-
       const fac = new FastAverageColor();
       const colorResult = await fac.getColorAsync(data.url);
       if (!colorResult.error) {
@@ -883,8 +884,8 @@ export default function EditPage() {
       setIsThumbnailUploading(false);
     }
   };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
     setIsUploading(true);
@@ -904,19 +905,21 @@ export default function EditPage() {
     setIsUploading(false);
   };
 
-  // 2. 제출 핸들러를 수정(PUT) 로직으로 변경
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!title || !content || !thumbnailUrl) {
       setError('제목, 내용, 대표 이미지를 모두 설정해주세요.');
       return;
     }
+    if (visibility === 'password' && !post?.password && !password) {
+      setError('비밀번호 공개를 선택한 경우, 새 비밀번호를 입력해야 합니다.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
-    setGeneratedLink('');
 
     try {
-      // POST 대신 PUT 메소드 사용
       const response = await fetch(`/api/posts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -927,15 +930,15 @@ export default function EditPage() {
           isNsfw, selectedFont, password,
           dominantColor: dominantColor || '#28234D',
           textColor: textColor || '#FFFFFF',
+          visibility,
         }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
 
-      setGeneratedLink(data.url);
-      // 수정 완료 후 my-posts 페이지로 이동
-      setTimeout(() => router.push('/my-posts'), 2000);
+      alert('게시물이 성공적으로 수정되었습니다.');
+      router.push('/my-posts');
     } catch (err) {
       setError(err instanceof Error ? err.message : '게시물 수정 실패');
     } finally {
@@ -979,7 +982,7 @@ export default function EditPage() {
       return currentContent;
     });
   };
-  
+
   if (isLoadingData) {
     return <div className="min-h-screen flex items-center justify-center">데이터를 불러오는 중...</div>;
   }
@@ -992,49 +995,52 @@ export default function EditPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-8 rounded-lg shadow-md space-y-6 h-fit">
           <h1 className="text-3xl font-bold text-center text-gray-900">게시물 수정</h1>
-          {/* 폼 부분은 upload 페이지와 거의 동일 */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div><label htmlFor="title" className="block text-sm font-medium text-gray-700">제목</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required /></div>
-            <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-700">태그</label>
-              <input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="태그를 쉼표(,)로 구분하여 입력" />
-            </div>
-            <div>
-              <label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700">대표 이미지</label>
-              <input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />
-              {isThumbnailUploading && <p className="text-sm text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}
-            </div>
-            <div><label htmlFor="file" className="block text-sm font-medium text-gray-700">본문 이미지 (여러 개 선택 가능)</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}</div>
-            <div>
-              <div className="flex justify-between items-center">
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700">본문 (Markdown 지원)</label>
-                <button type="button" onClick={insertSpoilerText} className="px-2 py-1 text-xs font-semibold text-white bg-gray-700 rounded-md hover:bg-gray-800">스포일러 추가</button>
-              </div>
-              <textarea ref={contentRef} id="content" rows={10} value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required />
-            </div>
-            <div className="space-y-4 rounded-md border border-gray-200 p-4">
-              <h3 className="text-sm font-medium text-gray-900">옵션</h3>
-              <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="blur-toggle" type="checkbox" checked={isBlurred} onChange={(e) => setIsBlurred(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="blur-toggle" className="font-medium text-gray-700">대표 이미지 흐리게</label><p className="text-gray-500">SNS 썸네일을 블러 처리합니다.</p></div></div>
-              <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="spoiler-toggle" type="checkbox" checked={isSpoiler} onChange={(e) => setIsSpoiler(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="spoiler-toggle" className="font-medium text-gray-700">본문 내용 스포일러</label><p className="text-gray-500">SNS 본문 내용을 가립니다.</p></div></div>
-              <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="nsfw-toggle" type="checkbox" checked={isNsfw} onChange={(e) => setIsNsfw(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="nsfw-toggle" className="font-medium text-gray-700">NSFW (민감한 콘텐츠)</label><p className="text-gray-500">SNS 썸네일을 완전히 가립니다.</p></div></div>
+            <div><label htmlFor="tags" className="block text-sm font-medium text-gray-700">태그</label><input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="태그를 쉼표(,)로 구분하여 입력" /></div>
+            <div><label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700">대표 이미지</label><input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isThumbnailUploading && <p className="text-sm text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}</div>
+            
+            {/* ▼▼▼ [복원] 본문 이미지 첨부란 ▼▼▼ */}
+            <div><label htmlFor="file" className="block text-sm font-medium text-gray-700">본문 이미지 추가</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}</div>
+            
+            <div><div className="flex justify-between items-center"><label htmlFor="content" className="block text-sm font-medium text-gray-700">본문 (Markdown 지원)</label><button type="button" onClick={insertSpoilerText} className="px-2 py-1 text-xs font-semibold text-white bg-gray-700 rounded-md hover:bg-gray-800">스포일러 추가</button></div><textarea ref={contentRef} id="content" rows={10} value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
+            
+            <div className="space-y-6 rounded-md border border-gray-200 p-4">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호 (변경 시에만 입력)</label>
-                <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="새 비밀번호 또는 빈 칸으로 두기" />
+                <h3 className="text-sm font-medium text-gray-900">공개 범위</h3>
+                <div className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                  <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="public" checked={visibility === 'public'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">전체 공개</span></label>
+                  <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="password" checked={visibility === 'password'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">비밀번호</span></label>
+                  <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="followers_only" checked={visibility === 'followers_only'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">팔로워만</span></label>
+                  <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="mutuals_only" checked={visibility === 'mutuals_only'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">맞팔로워만</span></label>
+                </div>
+              </div>
+
+              {(visibility === 'password') && (
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호 (변경 시에만 입력)</label>
+                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" placeholder="새 비밀번호 또는 빈 칸으로 두기" />
+                </div>
+              )}
+
+              {/* ▼▼▼ [복원] SNS 미리보기 옵션 ▼▼▼ */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-900">SNS 미리보기 옵션</h3>
+                <div className="mt-2 space-y-2">
+                  <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="blur-toggle" type="checkbox" checked={isBlurred} onChange={(e) => setIsBlurred(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="blur-toggle" className="font-medium text-gray-700">대표 이미지 흐리게</label></div></div>
+                  <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="spoiler-toggle" type="checkbox" checked={isSpoiler} onChange={(e) => setIsSpoiler(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="spoiler-toggle" className="font-medium text-gray-700">본문 내용 스포일러</label></div></div>
+                  <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="nsfw-toggle" type="checkbox" checked={isNsfw} onChange={(e) => setIsNsfw(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="nsfw-toggle" className="font-medium text-gray-700">NSFW (민감한 콘텐츠)</label></div></div>
+                </div>
               </div>
             </div>
-            <button type="submit" disabled={isSubmitting || isUploading || isThumbnailUploading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">{isSubmitting ? '수정 중...' : '수정 완료'}</button>
+
+            <button type="submit" disabled={isSubmitting || isUploading || isThumbnailUploading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 disabled:bg-gray-400">{isSubmitting ? '수정 중...' : '수정 완료'}</button>
           </form>
           {error && <p className="mt-4 text-sm text-center text-red-600">{error}</p>}
-          {generatedLink && (<div className="mt-6 p-4 bg-gray-100 border border-gray-200 rounded-md"><p className="text-sm font-medium text-gray-800">✅ 수정 성공! 공유 링크:</p><a href={generatedLink} target="_blank" rel="noopener noreferrer" className="block mt-1 text-sm text-gray-900 font-semibold break-all hover:underline">{generatedLink}</a></div>)}
         </div>
         <div className="space-y-8 sticky top-8 h-fit">
-          <OgPreview 
-            title={title} tags={tags} content={content} imageUrl={thumbnailUrl}
-            isBlurred={isBlurred} isSpoiler={isSpoiler} isNsfw={isNsfw}
-          />
-          <ContentPreview 
-            content={content} fontClass={selectedFont} onImageResize={handleImageResize}
-          />
+          <OgPreview title={title} tags={tags} content={content} imageUrl={thumbnailUrl} isBlurred={isBlurred} isSpoiler={isSpoiler} isNsfw={isNsfw} />
+          <ContentPreview content={content} fontClass={selectedFont} onImageResize={handleImageResize} />
         </div>
       </div>
     </main>
@@ -1195,6 +1201,125 @@ export default async function MyPostsPage() {
                       <Edit size={18} />
                     </Link>
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+============================================================
+FILE: app\[locale]\profile\[userId]\page.tsx
+============================================================
+// app/profile/[userId]/page.tsx (전체 코드)
+
+import { db } from '@vercel/postgres';
+import { notFound } from 'next/navigation';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import Image from 'next/image';
+import Link from 'next/link';
+import FollowButton from '@/components/FollowButton';
+import type { Post } from '@/types';
+
+interface UserProfile {
+  id: number;
+  name: string;
+  email: string;
+}
+
+async function getProfileData(userId: number) {
+  const userResult = await db.sql<UserProfile>`SELECT id, name, email FROM users WHERE id = ${userId} LIMIT 1;`;
+  if (userResult.rowCount === 0) return null;
+  
+  const postsResult = await db.sql<Post>`
+    SELECT id, title, thumbnail_url, is_nsfw, is_thumbnail_blurred 
+    FROM posts 
+    WHERE user_id = ${userId} AND visibility = 'public'
+    ORDER BY created_at DESC;
+  `;
+
+  const followerCountResult = await db.sql`SELECT COUNT(*) FROM follows WHERE following_id = ${userId};`;
+  const followingCountResult = await db.sql`SELECT COUNT(*) FROM follows WHERE follower_id = ${userId};`;
+
+  return {
+    user: userResult.rows[0],
+    posts: postsResult.rows,
+    followerCount: parseInt(followerCountResult.rows[0].count, 10),
+    followingCount: parseInt(followingCountResult.rows[0].count, 10),
+  };
+}
+
+export default async function ProfilePage({ params }: { params: { userId: string } }) {
+  const profileId = parseInt(params.userId, 10);
+  if (isNaN(profileId)) notFound();
+
+  const profileData = await getProfileData(profileId);
+  if (!profileData) notFound();
+
+  const session = await getServerSession(authOptions);
+  const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  
+  let isFollowing = false;
+  if (viewerId) {
+    const followCheck = await db.sql`
+      SELECT 1 FROM follows WHERE follower_id = ${viewerId} AND following_id = ${profileId} LIMIT 1;
+    `;
+    isFollowing = (followCheck?.rowCount ?? 0) > 0;
+  }
+  
+  const { user, posts, followerCount, followingCount } = profileData;
+
+  return (
+    <main className="min-h-screen bg-gray-100">
+      <div className="max-w-4xl mx-auto p-4 sm:p-8">
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+            <div className="w-24 h-24 bg-gray-300 rounded-full flex-shrink-0">
+              {/* Future: User avatar */}
+            </div>
+            <div className="flex-grow text-center sm:text-left">
+              <h1 className="text-3xl font-bold text-gray-900">{user.name}</h1>
+              <p className="text-gray-500">{user.email}</p>
+              <div className="flex justify-center sm:justify-start space-x-4 mt-2">
+                <p><span className="font-semibold">{followerCount}</span> Followers</p>
+                <p><span className="font-semibold">{followingCount}</span> Following</p>
+              </div>
+            </div>
+            <div className="flex-shrink-0">
+              <FollowButton targetUserId={user.id} isInitiallyFollowing={isFollowing} />
+            </div>
+          </div>
+        </div>
+
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Public Posts</h2>
+        {posts.length === 0 ? (
+          <div className="text-center bg-white p-8 rounded-lg shadow-md">
+            <p className="text-gray-600">This user has no public posts yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {posts.map((post) => (
+              <div key={post.id} className="group bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                <Link href={`/view/${post.id}`} className="block">
+                  <div className="relative aspect-square">
+                    <Image
+                      src={post.thumbnail_url}
+                      alt={post.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className={`object-cover ${post.is_nsfw || post.is_thumbnail_blurred ? 'blur-md' : ''}`}
+                    />
+                    {post.is_nsfw && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-lg">NSFW</div>}
+                  </div>
+                </Link>
+                <div className="p-4 flex-grow">
+                  <Link href={`/view/${post.id}`} className="block">
+                    <h3 className="font-bold text-lg text-gray-800 truncate group-hover:underline">{post.title}</h3>
+                  </Link>
                 </div>
               </div>
             ))}
@@ -1506,12 +1631,14 @@ export default function OgPreview({ title, tags, content, imageUrl, isBlurred, i
 ============================================================
 FILE: app\[locale]\upload\page.tsx
 ============================================================
+// app/[locale]/upload/page.tsx
+
 'use client';
 
 import { useState, ChangeEvent, FormEvent, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import OgPreview from './OgPreview';
 import ContentPreview from './ContentPreview';
-// ▼▼▼ fast-average-color를 import 합니다 ▼▼▼
 import { FastAverageColor } from 'fast-average-color';
 
 function escapeRegExp(string: string) {
@@ -1519,6 +1646,9 @@ function escapeRegExp(string: string) {
 }
 
 export default function UploadPage() {
+  const router = useRouter();
+
+  // Form states
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [content, setContent] = useState('');
@@ -1534,10 +1664,11 @@ export default function UploadPage() {
   const [selectedFont, setSelectedFont] = useState('font-pretendard');
   const [password, setPassword] = useState('');
   const contentRef = useRef<HTMLTextAreaElement>(null);
-
-  // ▼▼▼ 분석된 색상을 저장할 state 추가 ▼▼▼
   const [dominantColor, setDominantColor] = useState<string | null>(null);
   const [textColor, setTextColor] = useState<string | null>(null);
+
+  // ▼▼▼ [수정] 공개 범위 상태 추가 ▼▼▼
+  const [visibility, setVisibility] = useState('public');
 
   const fontClasses: { [key: string]: string } = {
     'font-paperozi': '페이퍼로지',
@@ -1552,7 +1683,6 @@ export default function UploadPage() {
 
     setIsThumbnailUploading(true);
     setError('');
-
     const formData = new FormData();
     formData.append('file', file);
 
@@ -1563,17 +1693,12 @@ export default function UploadPage() {
       
       setThumbnailUrl(data.url);
 
-      // ▼▼▼ 썸네일 업로드 성공 후, 브라우저에서 색상 분석 실행 ▼▼▼
       const fac = new FastAverageColor();
-      // R2 URL에 CORS 문제가 발생할 수 있으므로 프록시를 사용하거나,
-      // 여기서는 이미지 URL을 직접 분석합니다.
       const colorResult = await fac.getColorAsync(data.url);
       if (!colorResult.error) {
         setDominantColor(colorResult.hex);
         setTextColor(colorResult.isDark ? '#ffffff' : '#000000');
       }
-      // ▲▲▲ 여기까지 추가 ▲▲▲
-
     } catch (err) {
       setError(err instanceof Error ? err.message : '대표 이미지 업로드 실패');
     } finally {
@@ -1607,6 +1732,11 @@ export default function UploadPage() {
       setError('제목, 내용, 대표 이미지를 모두 설정해주세요.');
       return;
     }
+    if (visibility === 'password' && !password) {
+      setError('비밀번호 공개를 선택한 경우, 비밀번호를 입력해야 합니다.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
     setGeneratedLink('');
@@ -1620,9 +1750,9 @@ export default function UploadPage() {
           isThumbnailBlurred: isBlurred,
           isContentSpoiler: isSpoiler,
           isNsfw, selectedFont, password,
-          // ▼▼▼ 분석된 색상 값을 함께 전송 ▼▼▼
-          dominantColor: dominantColor || '#28234D', // 실패 시 기본값
+          dominantColor: dominantColor || '#28234D',
           textColor: textColor || '#FFFFFF',
+          visibility, // ▼▼▼ [수정] 공개 범위 값 추가 ▼▼▼
         }),
       });
 
@@ -1630,9 +1760,10 @@ export default function UploadPage() {
       if (!response.ok) throw new Error(data.error);
 
       setGeneratedLink(data.url);
+      // 폼 초기화
       setTitle(''); setTags(''); setContent(''); setThumbnailUrl('');
       setIsBlurred(false); setIsSpoiler(false); setIsNsfw(false); setPassword('');
-      setDominantColor(null); setTextColor(null); // 상태 초기화
+      setDominantColor(null); setTextColor(null); setVisibility('public');
     } catch (err) {
       setError(err instanceof Error ? err.message : '게시물 생성 실패');
     } finally {
@@ -1682,61 +1813,51 @@ export default function UploadPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-8 rounded-lg shadow-md space-y-6 h-fit">
           <h1 className="text-3xl font-bold text-center text-gray-900">새 게시물 작성</h1>
-          <div>
-            <label htmlFor="font-select" className="block text-sm font-medium text-gray-700">폰트 선택</label>
-            <select id="font-select" value={selectedFont} onChange={(e) => setSelectedFont(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm">
-              {Object.entries(fontClasses).map(([className, name]) => ( <option key={className} value={className}>{name}</option>))}
-            </select>
-          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* 폰트 선택, 제목, 태그, 이미지 업로드 등 기존 UI ... */}
             <div><label htmlFor="title" className="block text-sm font-medium text-gray-700">제목</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required /></div>
-            <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-700">태그</label>
-              <input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="태그를 쉼표(,)로 구분하여 입력" />
-            </div>
-            <div>
-              <label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700">대표 이미지</label>
-              <input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />
-              {isThumbnailUploading && <p className="text-sm text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}
-            </div>
-            <div><label htmlFor="file" className="block text-sm font-medium text-gray-700">본문 이미지 (여러 개 선택 가능)</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}</div>
-            <div>
-              <div className="flex justify-between items-center">
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700">본문 (Markdown 지원)</label>
-                <button type="button" onClick={insertSpoilerText} className="px-2 py-1 text-xs font-semibold text-white bg-gray-700 rounded-md hover:bg-gray-800">스포일러 추가</button>
-              </div>
-              <textarea ref={contentRef} id="content" rows={10} value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required />
-            </div>
-            <div className="space-y-4 rounded-md border border-gray-200 p-4">
-              <h3 className="text-sm font-medium text-gray-900">옵션</h3>
-              <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="blur-toggle" type="checkbox" checked={isBlurred} onChange={(e) => setIsBlurred(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="blur-toggle" className="font-medium text-gray-700">대표 이미지 흐리게</label><p className="text-gray-500">SNS 썸네일을 블러 처리합니다.</p></div></div>
-              <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="spoiler-toggle" type="checkbox" checked={isSpoiler} onChange={(e) => setIsSpoiler(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="spoiler-toggle" className="font-medium text-gray-700">본문 내용 스포일러</label><p className="text-gray-500">SNS 본문 내용을 가립니다.</p></div></div>
-              <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="nsfw-toggle" type="checkbox" checked={isNsfw} onChange={(e) => setIsNsfw(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-600" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="nsfw-toggle" className="font-medium text-gray-700">NSFW (민감한 콘텐츠)</label><p className="text-gray-500">SNS 썸네일을 완전히 가립니다.</p></div></div>
+            <div><label htmlFor="tags" className="block text-sm font-medium text-gray-700">태그</label><input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="태그를 쉼표(,)로 구분하여 입력" /></div>
+            <div><label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700">대표 이미지</label><input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" required />{isThumbnailUploading && <p className="text-sm text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}</div>
+            <div><label htmlFor="file" className="block text-sm font-medium text-gray-700">본문 이미지</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}</div>
+            <div><div className="flex justify-between items-center"><label htmlFor="content" className="block text-sm font-medium text-gray-700">본문 (Markdown 지원)</label><button type="button" onClick={insertSpoilerText} className="px-2 py-1 text-xs font-semibold text-white bg-gray-700 rounded-md hover:bg-gray-800">스포일러 추가</button></div><textarea ref={contentRef} id="content" rows={10} value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required /></div>
+            
+            {/* ▼▼▼ [수정] 공개 범위 및 옵션 섹션 ▼▼▼ */}
+            <div className="space-y-6 rounded-md border border-gray-200 p-4">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호 (선택)</label>
-                <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="게시물 보호용 비밀번호" />
+                <h3 className="text-sm font-medium text-gray-900">공개 범위</h3>
+                <div className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                  <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="public" checked={visibility === 'public'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">전체 공개</span></label>
+                  <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="password" checked={visibility === 'password'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">비밀번호</span></label>
+                  <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="followers_only" checked={visibility === 'followers_only'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">팔로워만</span></label>
+                  <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="mutuals_only" checked={visibility === 'mutuals_only'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">맞팔로워만</span></label>
+                </div>
+              </div>
+
+              {visibility === 'password' && (
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호</label>
+                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="게시물 보호용 비밀번호" required />
+                </div>
+              )}
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-900">SNS 미리보기 옵션</h3>
+                <div className="mt-2 space-y-2">
+                  <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="blur-toggle" type="checkbox" checked={isBlurred} onChange={(e) => setIsBlurred(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="blur-toggle" className="font-medium text-gray-700">대표 이미지 흐리게</label></div></div>
+                  <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="spoiler-toggle" type="checkbox" checked={isSpoiler} onChange={(e) => setIsSpoiler(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="spoiler-toggle" className="font-medium text-gray-700">본문 내용 스포일러</label></div></div>
+                  <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="nsfw-toggle" type="checkbox" checked={isNsfw} onChange={(e) => setIsNsfw(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="nsfw-toggle" className="font-medium text-gray-700">NSFW (민감한 콘텐츠)</label></div></div>
+                </div>
               </div>
             </div>
+            
             <button type="submit" disabled={isSubmitting || isUploading || isThumbnailUploading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">{isSubmitting ? '생성 중...' : '공유 링크 생성'}</button>
           </form>
           {error && <p className="mt-4 text-sm text-center text-red-600">{error}</p>}
           {generatedLink && (<div className="mt-6 p-4 bg-gray-100 border border-gray-200 rounded-md"><p className="text-sm font-medium text-gray-800">✅ 성공! 생성된 링크:</p><a href={generatedLink} target="_blank" rel="noopener noreferrer" className="block mt-1 text-sm text-gray-900 font-semibold break-all hover:underline">{generatedLink}</a></div>)}
         </div>
         <div className="space-y-8 sticky top-8 h-fit">
-          <OgPreview 
-            title={title}
-            tags={tags}
-            content={content}
-            imageUrl={thumbnailUrl}
-            isBlurred={isBlurred}
-            isSpoiler={isSpoiler}
-            isNsfw={isNsfw}
-          />
-          <ContentPreview 
-            content={content}
-            fontClass={selectedFont}
-            onImageResize={handleImageResize}
-          />
+          <OgPreview title={title} tags={tags} content={content} imageUrl={thumbnailUrl} isBlurred={isBlurred} isSpoiler={isSpoiler} isNsfw={isNsfw} />
+          <ContentPreview content={content} fontClass={selectedFont} onImageResize={handleImageResize} />
         </div>
       </div>
     </main>
@@ -1840,6 +1961,7 @@ export default function ResizableImage({ src, alt, currentWidth, onResize }: Res
 ============================================================
 FILE: app\[locale]\view\[id]\page.tsx
 ============================================================
+// app/[locale]/view/[id]/page.tsx (전체 코드, 생략 없음)
 import { notFound } from 'next/navigation';
 import { db } from '@vercel/postgres';
 import type { Metadata } from 'next';
@@ -1847,12 +1969,21 @@ import { unstable_noStore as noStore } from 'next/cache';
 import PostContent from './PostContent';
 import PasswordProtect from './PasswordProtect';
 import type { Post } from '@/types';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
 
 async function getPostData(id: string): Promise<Post | null> {
   noStore();
   try {
-    // user_id를 포함하여 선택합니다. Post 타입에 user_id를 추가해야 합니다.
-    const { rows } = await db.sql<Post>`SELECT *, user_id FROM posts WHERE id = ${id} LIMIT 1;`;
+    const { rows } = await db.sql<Post>`
+      SELECT 
+        p.*, 
+        u.name as author_name
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.id = ${id}
+      LIMIT 1;
+    `;
     if (rows.length === 0) return null;
     return rows[0];
   } catch (error) {
@@ -1861,82 +1992,65 @@ async function getPostData(id: string): Promise<Post | null> {
   }
 }
 
-// 매개변수 위치에 직접 타입을 명시합니다.
-export async function generateMetadata(
-  { params }: { params: { id: string } }
-): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const post = await getPostData(params.id);
-
   if (!post) {
     return { title: '게시물을 찾을 수 없습니다' };
   }
-
-  const cleanDescriptionForOg = post.content
-    ? post.content
-        .replace(/!\[.*?\]\(.*?\)/g, '')
-        .replace(/<img[^>]*>/gi, '')
-        .replace(/블러\[.*?\]/g, '')
-        .replace(/[`*_{}[\]()#+\-.!]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 100)
-    : '';
-
-  const displayDescription = post.is_content_spoiler 
-    ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' 
-    : cleanDescriptionForOg || '친구로부터 공유된 게시물을 확인하세요.';
-
-  const ogImageUrl = new URL(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/og`);
-  
+  const cleanDescriptionForOg = post.content ? post.content.replace(/!\[.*?\]\(.*?\)/g, '').replace(/<img[^>]*>/gi, '').replace(/블러\[.*?\]/g, '').replace(/[`*_{}[\]()#+\-.!]/g, '').replace(/\s+/g, ' ').trim().substring(0, 100) : '';
+  const displayDescription = post.is_content_spoiler ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' : cleanDescriptionForOg || '친구로부터 공유된 게시물을 확인하세요.';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${process.env.VERCEL_URL}`;
+  const ogImageUrl = new URL(`${baseUrl}/api/og`);
   ogImageUrl.searchParams.set('title', post.title);
   ogImageUrl.searchParams.set('imageUrl', post.thumbnail_url);
   ogImageUrl.searchParams.set('isBlurred', String(post.is_thumbnail_blurred));
   ogImageUrl.searchParams.set('isSpoiler', String(post.is_content_spoiler));
   ogImageUrl.searchParams.set('isNsfw', String(post.is_nsfw));
-  
-  if (cleanDescriptionForOg) {
-    ogImageUrl.searchParams.set('artist', cleanDescriptionForOg);
-  }
-  if (post.tags) {
-    ogImageUrl.searchParams.set('tags', post.tags);
-  }
-  if (post.dominant_color) {
-    ogImageUrl.searchParams.set('bgColor', post.dominant_color);
-  }
-  if (post.text_color) {
-    ogImageUrl.searchParams.set('textColor', post.text_color);
-  }
-
-  return {
-    title: post.title,
-    description: displayDescription,
-    openGraph: {
-      title: post.title,
-      description: displayDescription,
-      images: [ogImageUrl.toString()],
-      type: 'article',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: post.title,
-      description: displayDescription,
-      images: [ogImageUrl.toString()],
-    },
-  };
+  if (post.tags) { ogImageUrl.searchParams.set('tags', post.tags); }
+  if (post.dominant_color) { ogImageUrl.searchParams.set('bgColor', post.dominant_color); }
+  if (post.text_color) { ogImageUrl.searchParams.set('textColor', post.text_color); }
+  if (cleanDescriptionForOg) { ogImageUrl.searchParams.set('artist', cleanDescriptionForOg); }
+  return { title: post.title, description: displayDescription, openGraph: { title: post.title, description: displayDescription, images: [ogImageUrl.toString()], type: 'article' }, twitter: { card: 'summary_large_image', title: post.title, description: displayDescription, images: [ogImageUrl.toString()] } };
 }
 
-// 페이지 컴포넌트에도 직접 타입을 명시합니다.
+async function checkPermission(post: Post, viewerId: number | null): Promise<boolean> {
+  const authorId = post.user_id;
+  if (post.visibility === 'public' || post.visibility === 'password' || !post.visibility) { return true; }
+  if (!viewerId) return false;
+  if (viewerId === authorId) return true;
+  if (post.visibility === 'followers_only') {
+    const result = await db.sql`SELECT 1 FROM follows WHERE follower_id = ${viewerId} AND following_id = ${authorId} LIMIT 1;`;
+    return (result?.rowCount ?? 0) > 0;
+  }
+  if (post.visibility === 'mutuals_only') {
+    const [viewerFollowsAuthor, authorFollowsViewer] = await Promise.all([
+      db.sql`SELECT 1 FROM follows WHERE follower_id = ${viewerId} AND following_id = ${authorId} LIMIT 1;`,
+      db.sql`SELECT 1 FROM follows WHERE follower_id = ${authorId} AND following_id = ${viewerId} LIMIT 1;`
+    ]);
+    return ((viewerFollowsAuthor?.rowCount ?? 0) > 0 && (authorFollowsViewer?.rowCount ?? 0) > 0);
+  }
+  return false;
+}
+
 export default async function ViewPage({ params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
   const post = await getPostData(params.id);
-  if (!post) notFound();
-  
+  if (!post || !post.user_id) { notFound(); }
+  const hasPermission = await checkPermission(post, viewerId);
+  if (!hasPermission) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+        <div className="w-full max-w-md p-8 text-center space-y-4 bg-white rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold text-gray-800">접근 권한 없음</h2>
+          <p className="text-gray-600">이 콘텐츠를 볼 수 있는 권한이 없습니다. 작성자를 팔로우하거나 로그인해야 할 수 있습니다.</p>
+        </div>
+      </main>
+    );
+  }
   return (
     <main className={`flex min-h-screen items-center justify-center bg-gray-100 py-8 px-4 ${post.font_family || 'font-pretendard'}`}>
-      {post.password ? (
-        <PasswordProtect post={post} />
-      ) : (
-        <PostContent post={post} />
-      )}
+      {post.password && post.visibility === 'password' ? (<PasswordProtect post={post} />) : (<PostContent post={post} />)}
     </main>
   );
 }
@@ -2022,7 +2136,7 @@ export default function PasswordProtect({ post }: { post: Post }) {
 ============================================================
 FILE: app\[locale]\view\[id]\PostContent.tsx
 ============================================================
-// app/[locale]/view/[id]/PostContent.tsx (최종 완성)
+// app/[locale]/view/[id]/PostContent.tsx (전체 코드)
 
 'use client';
 
@@ -2039,13 +2153,10 @@ import { Edit } from 'lucide-react';
 
 export default function PostContent({ post }: { post: Post }) {
   const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  useEffect(() => { setIsClient(true); }, []);
 
   const { data: session } = useSession();
-  const isAuthor = session && (session.user as any).id === (post as any).user_id;
+  const isAuthor = session && (session.user as any).id === String(post.user_id);
 
   const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
     const target = e.target as HTMLElement;
@@ -2066,8 +2177,21 @@ export default function PostContent({ post }: { post: Post }) {
       className="prose lg:prose-lg w-full max-w-3xl bg-white p-6 sm:p-10 rounded-lg shadow-lg"
       onClick={handleSpoilerClick}
     >
-      <div className="flex justify-between items-start">
-        <h1>{post.title}</h1>
+      <div className="flex justify-between items-start border-b pb-4 mb-6">
+        <div>
+          <h1>{post.title}</h1>
+          {/* ▼▼▼ 작성자 이름과 프로필 링크 추가 ▼▼▼ */}
+          {post.author_name && post.user_id && (
+            <div className="not-prose -mt-4">
+              <Link
+                href={`/profile/${post.user_id}`}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                by {post.author_name}
+              </Link>
+            </div>
+          )}
+        </div>
         {isAuthor && (
           <Link href={`/edit/${post.id}`} className="not-prose p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors -mt-2 -mr-4">
             <Edit size={20} />
@@ -2075,10 +2199,8 @@ export default function PostContent({ post }: { post: Post }) {
         )}
       </div>
 
-      {/* 서버와 초기 렌더링 시에는 아무것도 렌더링하지 않거나, 간단한 로딩 메시지를 보여줍니다. */}
       {!isClient && <div>콘텐츠를 불러오는 중...</div>}
 
-      {/* 클라이언트에서 마운트된 후에만 ReactMarkdown을 렌더링합니다. */}
       {isClient && (
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
@@ -2093,6 +2215,77 @@ export default function PostContent({ post }: { post: Post }) {
         </ReactMarkdown>
       )}
     </article>
+  );
+}
+
+============================================================
+FILE: components\FollowButton.tsx
+============================================================
+// components/FollowButton.tsx (전체 코드)
+'use client';
+
+import { useState, useTransition } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+
+interface FollowButtonProps {
+  targetUserId: number;
+  isInitiallyFollowing: boolean;
+}
+
+export default function FollowButton({ targetUserId, isInitiallyFollowing }: FollowButtonProps) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isFollowing, setIsFollowing] = useState(isInitiallyFollowing);
+  const [isPending, startTransition] = useTransition();
+
+  const isLoading = status === 'loading' || isPending;
+
+  if (status === 'unauthenticated') {
+    return (
+      <button onClick={() => router.push('/login')} className="px-4 py-1.5 text-sm font-semibold rounded-full bg-gray-900 text-white hover:bg-gray-700">
+        Follow
+      </button>
+    );
+  }
+
+  if (!session || session.user.id === String(targetUserId)) {
+    return null; // 자기 자신 프로필에선 안 보임
+  }
+
+  const handleClick = async () => {
+    const action = isFollowing ? 'unfollow' : 'follow';
+    try {
+      const res = await fetch(`/api/users/${targetUserId}/follow`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        setIsFollowing(!isFollowing);
+        startTransition(() => {
+          router.refresh(); // 서버 데이터를 다시 불러와 팔로워 수 등을 갱신
+        });
+      } else {
+        console.error('Follow action failed');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isLoading}
+      className={`w-28 px-4 py-1.5 text-sm font-semibold rounded-full transition-colors disabled:opacity-50 ${
+        isFollowing
+          ? 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-100'
+          : 'bg-gray-900 text-white hover:bg-gray-700'
+      }`}
+    >
+      {isLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
+    </button>
   );
 }
 
@@ -2682,6 +2875,8 @@ createTable();
 ============================================================
 FILE: types\index.ts
 ============================================================
+// types/index.ts (전체 코드)
+
 export interface Post {
   id: string;
   title: string;
@@ -2696,7 +2891,9 @@ export interface Post {
   created_at: string;
   dominant_color: string | null;
   text_color: string | null;
-  user_id?: number; // DB에서 int 타입이므로 number
+  user_id?: number;
+  visibility?: string;
+  author_name?: string; // ▼▼▼ 작성자 이름을 위해 추가 ▼▼▼
 }
 
 ============================================================

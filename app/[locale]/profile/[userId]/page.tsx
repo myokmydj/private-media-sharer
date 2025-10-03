@@ -1,4 +1,4 @@
-// app/profile/[userId]/page.tsx (전체 코드)
+// app/[locale]/profile/[userId]/page.tsx (수정)
 
 import { db } from '@vercel/postgres';
 import { notFound } from 'next/navigation';
@@ -8,6 +8,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import FollowButton from '@/components/FollowButton';
 import type { Post } from '@/types';
+// ▼▼▼ [추가] next/cache에서 unstable_noStore를 import합니다. ▼▼▼
+import { unstable_noStore as noStore } from 'next/cache';
 
 interface UserProfile {
   id: number;
@@ -16,6 +18,9 @@ interface UserProfile {
 }
 
 async function getProfileData(userId: number) {
+  // ▼▼▼ [추가] 함수 맨 위에 noStore()를 호출하여 데이터 캐싱을 방지합니다. ▼▼▼
+  noStore();
+  
   const userResult = await db.sql<UserProfile>`SELECT id, name, email FROM users WHERE id = ${userId} LIMIT 1;`;
   if (userResult.rowCount === 0) return null;
   
@@ -37,6 +42,7 @@ async function getProfileData(userId: number) {
   };
 }
 
+// ... 이하 나머지 코드는 기존과 동일합니다.
 export default async function ProfilePage({ params }: { params: { userId: string } }) {
   const profileId = parseInt(params.userId, 10);
   if (isNaN(profileId)) notFound();
