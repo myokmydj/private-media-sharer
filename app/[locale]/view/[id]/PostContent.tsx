@@ -1,4 +1,4 @@
-// app/[locale]/view/[id]/PostContent.tsx (최종 완성)
+// app/[locale]/view/[id]/PostContent.tsx (전체 코드)
 
 'use client';
 
@@ -15,13 +15,10 @@ import { Edit } from 'lucide-react';
 
 export default function PostContent({ post }: { post: Post }) {
   const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  useEffect(() => { setIsClient(true); }, []);
 
   const { data: session } = useSession();
-  const isAuthor = session && (session.user as any).id === (post as any).user_id;
+  const isAuthor = session && (session.user as any).id === String(post.user_id);
 
   const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
     const target = e.target as HTMLElement;
@@ -42,8 +39,21 @@ export default function PostContent({ post }: { post: Post }) {
       className="prose lg:prose-lg w-full max-w-3xl bg-white p-6 sm:p-10 rounded-lg shadow-lg"
       onClick={handleSpoilerClick}
     >
-      <div className="flex justify-between items-start">
-        <h1>{post.title}</h1>
+      <div className="flex justify-between items-start border-b pb-4 mb-6">
+        <div>
+          <h1>{post.title}</h1>
+          {/* ▼▼▼ 작성자 이름과 프로필 링크 추가 ▼▼▼ */}
+          {post.author_name && post.user_id && (
+            <div className="not-prose -mt-4">
+              <Link
+                href={`/profile/${post.user_id}`}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                by {post.author_name}
+              </Link>
+            </div>
+          )}
+        </div>
         {isAuthor && (
           <Link href={`/edit/${post.id}`} className="not-prose p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors -mt-2 -mr-4">
             <Edit size={20} />
@@ -51,10 +61,8 @@ export default function PostContent({ post }: { post: Post }) {
         )}
       </div>
 
-      {/* 서버와 초기 렌더링 시에는 아무것도 렌더링하지 않거나, 간단한 로딩 메시지를 보여줍니다. */}
       {!isClient && <div>콘텐츠를 불러오는 중...</div>}
 
-      {/* 클라이언트에서 마운트된 후에만 ReactMarkdown을 렌더링합니다. */}
       {isClient && (
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}

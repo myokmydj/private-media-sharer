@@ -1,3 +1,5 @@
+// types/index.ts (전체 코드)
+
 export interface Post {
   id: string;
   title: string;
@@ -12,6 +14,7 @@ export interface Post {
   created_at: string;
   dominant_color: string | null;
   text_color: string | null;
-  visibility?: string; // 추가
   user_id?: number;
+  visibility?: string;
+  author_name?: string; // ▼▼▼ 작성자 이름을 위해 추가 ▼▼▼
 }
