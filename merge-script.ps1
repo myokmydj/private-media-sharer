@@ -1,5 +1,5 @@
 # ===================================================================
-# Next.js 프로젝트 소스 코드 병합 스크립트 (v2 - 특수 문자 경로 수정)
+# Next.js 프로젝트 소스 코드 병합 스크립트 (v3 - 파일 목록 업데이트)
 # - 지정된 파일들을 읽어 하나의 텍스트 파일로 합칩니다.
 # - 한글 깨짐 방지를 위해 모든 파일을 UTF-8로 처리합니다.
 # - AI에게 컨텍스트를 제공하는 용도로 사용하기 좋습니다.
@@ -22,6 +22,11 @@ $filesToMerge = @(
     "app/globals.css",
     "app/layout.tsx",
     "app/upload/page.tsx",
+    # ▼▼▼ 새로 추가된 미리보기 관련 컴포넌트 3개 ▼▼▼
+    "app/upload/OgPreview.tsx",
+    "app/upload/ContentPreview.tsx",
+    "app/upload/ResizableImage.tsx",
+    # ▲▲▲ 여기까지 추가 ▲▲▲
     "app/view/[id]/page.tsx",
     "app/view/[id]/PostContent.tsx",
     "app/view/[id]/PasswordProtect.tsx",
@@ -39,14 +44,14 @@ if (Test-Path $outputFile) {
 }
 
 # 결과 파일 상단에 헤더 추가
-$header = "--- START OF PROJECT CONTEXT ---`nGenerated on: $(Get-Date)`n"
+$header = "--- START OF FILE merged_code_context.txt ---`n"
 Add-Content -Path $outputFile -Value $header -Encoding Utf8
 
 # 파일 목록을 순회하며 내용 병합
 foreach ($file in $filesToMerge) {
     $fullPath = Join-Path -Path $projectRoot -ChildPath $file
 
-    # 파일 존재 여부 확인 (*** 수정된 부분 ***)
+    # 파일 존재 여부 확인
     if (-not (Test-Path -LiteralPath $fullPath)) {
         Write-Warning "File not found, skipping: $fullPath"
         continue
@@ -56,11 +61,16 @@ foreach ($file in $filesToMerge) {
     $fileHeader = "`n`n============================================================`nFILE: $file`n============================================================`n"
     Add-Content -Path $outputFile -Value $fileHeader -Encoding Utf8
 
-    # 파일 내용을 UTF-8로 읽어서 결과 파일에 추가 (*** 수정된 부분 ***)
+    # 파일 내용을 UTF-8로 읽어서 결과 파일에 추가
     # -Raw 옵션: 파일 전체를 하나의 문자열로 읽어와 줄바꿈을 그대로 유지
     $content = Get-Content -LiteralPath $fullPath -Raw -Encoding Utf8
     Add-Content -Path $outputFile -Value $content -Encoding Utf8
 }
+
+# 스크립트 종료 태그 추가
+$footer = "`n--- END OF FILE merged_code_context.txt ---"
+Add-Content -Path $outputFile -Value $footer -Encoding Utf8
+
 
 Write-Host "✅ Merge complete!" -ForegroundColor Green
 Write-Host "Output file saved to: $outputFile"
