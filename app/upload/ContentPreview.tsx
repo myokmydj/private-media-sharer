@@ -15,7 +15,6 @@ interface ContentPreviewProps {
 }
 
 export default function ContentPreview({ content, fontClass, onImageResize }: ContentPreviewProps) {
-  // ... (handleSpoilerClick, processContentForSpoilers 함수는 변경 없음) ...
   const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
     const target = e.target as HTMLElement;
     if (target.classList.contains('spoiler')) {
@@ -43,7 +42,10 @@ export default function ContentPreview({ content, fontClass, onImageResize }: Co
             rehypePlugins={[rehypeRaw]}
             components={{
               p: ({ node, children }) => {
-                // ▼▼▼ 'any' 대신 타입 안전적인 코드로 수정 ▼▼▼
+                // ▼▼▼ node가 undefined일 경우를 대비한 방어 코드 추가 ▼▼▼
+                if (!node) {
+                  return <p>{children}</p>;
+                }
                 const firstChild = node.children[0];
                 if (
                   node.children.length === 1 &&

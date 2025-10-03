@@ -29,12 +29,7 @@ export default function PostContent({ post }: { post: Post }) {
     }
   };
 
-  // ▼▼▼ '블러[...]' 치환자를 HTML 태그로 변환하는 로직 ▼▼▼
   const processContentForSpoilers = (text: string) => {
-    // /블러\[(.*?)\]/g 정규식:
-    // '블러[' 로 시작하고 ']' 로 끝나는 모든 문자열을 찾습니다.
-    // (.*?) 는 괄호 안의 내용을 캡처합니다. '?'는 탐욕적이지 않은(non-greedy) 매칭을 의미합니다.
-    // g 플래그는 문자열 전체에서 모든 일치 항목을 찾도록 합니다.
     return text.replace(/블러\[(.*?)\]/g, '<span class="spoiler">$1</span>');
   };
 
@@ -50,9 +45,13 @@ export default function PostContent({ post }: { post: Post }) {
         remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
         rehypePlugins={[rehypeRaw]}
         components={{ 
-          'img': ({ node, ...props }) => ( 
+          // ▼▼▼ 경고 해결을 위해 코드 수정 ▼▼▼
+          'img': ({ ...props }) => ( // 1. 사용하지 않는 'node' 제거
+            // 2. img 태그 경고를 무시하는 주석 추가
+            // eslint-disable-next-line @next/next/no-img-element
             <img {...props} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} alt="" /> 
-          ) 
+          )
+          // ▲▲▲ 여기까지 수정 ▲▲▲
         }}
       >
         {processedContent}
