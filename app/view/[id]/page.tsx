@@ -6,10 +6,7 @@ import PostContent from './PostContent';
 import PasswordProtect from './PasswordProtect';
 import type { Post } from '@/types';
 
-// PageProps -> ViewPageProps로 이름 변경하여 충돌 방지
-interface ViewPageProps {
-  params: { id: string };
-}
+// 별도의 Props 인터페이스를 완전히 제거합니다.
 
 async function getPostData(id: string): Promise<Post | null> {
   noStore();
@@ -23,8 +20,10 @@ async function getPostData(id: string): Promise<Post | null> {
   }
 }
 
-// 변경된 ViewPageProps 타입을 사용
-export async function generateMetadata({ params }: ViewPageProps): Promise<Metadata> {
+// 매개변수 위치에 직접 타입을 명시합니다.
+export async function generateMetadata(
+  { params }: { params: { id: string } }
+): Promise<Metadata> {
   const post = await getPostData(params.id);
 
   if (!post) {
@@ -85,8 +84,8 @@ export async function generateMetadata({ params }: ViewPageProps): Promise<Metad
   };
 }
 
-// 변경된 ViewPageProps 타입을 사용
-export default async function ViewPage({ params }: ViewPageProps) {
+// 페이지 컴포넌트에도 직접 타입을 명시합니다.
+export default async function ViewPage({ params }: { params: { id: string } }) {
   const post = await getPostData(params.id);
   if (!post) notFound();
   
