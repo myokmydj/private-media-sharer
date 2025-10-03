@@ -24,8 +24,7 @@ $excludeDirs = @(
     'test',
     'spec',
     'test-results',
-    'package-lock.json',
-    'scripts'
+    'package-lock.json'
 )
 
 # 3. List of file extensions to exclude.
