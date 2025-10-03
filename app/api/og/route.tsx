@@ -4,7 +4,7 @@ import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 // ▼▼▼ 파일 시스템 대신 생성된 TS 모듈에서 폰트 데이터를 직접 가져옵니다 ▼▼▼
-import { pretendardBold, pretendardRegular } from '@/lib/fonts';
+import { pretendardBold, pretendardRegular } from '@/.generated/fonts';
 // ▲▲▲ 여기까지 수정 ▲▲▲
 
 export const runtime = 'nodejs';

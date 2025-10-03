@@ -14,10 +14,11 @@ const fontsToConvert = [
   },
 ];
 
-const outputDir = path.join(process.cwd(), 'lib');
+// ▼▼▼ 출력 경로를 '.generated' 폴더로 변경 ▼▼▼
+const outputDir = path.join(process.cwd(), '.generated');
 const outputPath = path.join(outputDir, 'fonts.ts');
 
-// lib 디렉터리가 없으면 생성
+// .generated 디렉터리가 없으면 생성
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir);
 }
@@ -27,15 +28,14 @@ let tsContent = `// 이 파일은 scripts/convert-fonts.js에 의해 자동으�
 fontsToConvert.forEach(({ input, outputVar }) => {
   try {
     const fontBuffer = fs.readFileSync(input);
-    // 버퍼를 Uint8Array로 변환하는 TypeScript 코드를 생성합니다.
     const uint8ArrayString = `new Uint8Array([${fontBuffer.join(',')}])`;
     tsContent += `export const ${outputVar} = ${uint8ArrayString};\n\n`;
   } catch (error) {
     console.error(`'${input}' 폰트 파일을 읽는 데 실패했습니다. 파일 경로를 확인하세요.`);
-    process.exit(1); // 오류 발생 시 스크립트 중단
+    process.exit(1);
   }
 });
 
 fs.writeFileSync(outputPath, tsContent);
 
-console.log(`✅ 폰트가 성공적으로 lib/fonts.ts 파일로 변환되었습니다.`);
+console.log(`✅ 폰트가 성공적으로 .generated/fonts.ts 파일로 변환되었습니다.`);
