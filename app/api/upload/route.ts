@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { db } from '@vercel/postgres';
 import { nanoid } from 'nanoid';
 
 const s3Client = new S3Client({
@@ -12,6 +11,11 @@ const s3Client = new S3Client({
   },
 });
 
+function getPublicUrl(filename: string): string {
+  const publicUrlBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!;
+  return `${publicUrlBase.replace(/\/$/, '')}/${filename}`;
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -22,32 +26,22 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const id = nanoid();
-    const filename = file.name;
-    const contentType = file.type;
-    const key = `${id}-${filename}`;
+    const uniqueId = nanoid(10); // 짧은 고유 ID
+    const key = `${uniqueId}-${file.name}`;
 
     const command = new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,
       Key: key,
       Body: buffer,
-      ContentType: contentType,
+      ContentType: file.type,
     });
     
     await s3Client.send(command);
 
-    await db.sql`
-      INSERT INTO media (id, filename, content_type)
-      VALUES (${id}, ${key}, ${contentType});
-    `;
+    const publicUrl = getPublicUrl(key);
 
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000';
-      
-    const generatedUrl = `${baseUrl}/view/${id}`;
-
-    return NextResponse.json({ success: true, url: generatedUrl });
+    // 이제 DB에 저장하지 않고, 업로드된 파일의 URL과 파일명만 반환합니다.
+    return NextResponse.json({ success: true, url: publicUrl, filename: file.name });
 
   } catch (error) {
     console.error('Upload API Error:', error);
