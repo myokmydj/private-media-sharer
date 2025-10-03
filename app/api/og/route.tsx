@@ -2,25 +2,26 @@
 
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
-import { join } from 'path';
-import * as fs from 'fs';
 import sharp from 'sharp';
 
 export const runtime = 'nodejs';
 
-// --- 함수 밖으로 폰트 로딩 로직을 빼서 초기화 시 한 번만 실행되도록 수정 ---
-let pretendardBold: Buffer | null = null;
-let pretendardRegular: Buffer | null = null;
-try {
-  const fontBoldPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Black.otf');
-  const fontRegularPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Medium.otf');
-  pretendardBold = fs.readFileSync(fontBoldPath);
-  pretendardRegular = fs.readFileSync(fontRegularPath);
-} catch (fontError) {
-  console.error("Failed to load fonts:", fontError);
-  // 폰트 로딩 실패 시에도 서버가 죽지 않도록 처리
-}
+// --- Vercel 배포 환경에서 안정적으로 폰트를 로드하기 위해 fetch 방식으로 변경 ---
+// Vercel 환경 변수를 기반으로 기본 URL을 결정합니다.
+const baseUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : 'http://localhost:3000';
+
+// 함수 외부에서 폰트 로딩을 시작하여 초기화 시 한 번만 실행되도록 합니다.
+const pretendardBoldPromise = fetch(
+  new URL('/fonts/PretendardJP-Black.otf', baseUrl)
+).then((res) => res.arrayBuffer());
+
+const pretendardRegularPromise = fetch(
+  new URL('/fonts/PretendardJP-Medium.otf', baseUrl)
+).then((res) => res.arrayBuffer());
 // --- 여기까지 수정 ---
+
 
 function getContrastingTextColor(r: number, g: number, b: number): string {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
@@ -28,12 +29,13 @@ function getContrastingTextColor(r: number, g: number, b: number): string {
 }
 
 export async function GET(req: NextRequest) {
-  // --- 전체를 try-catch로 감싸서 모든 에러를 잡습니다 ---
   try {
-    // 폰트가 로드되지 않았으면 에러 응답
-    if (!pretendardBold || !pretendardRegular) {
-      throw new Error("Server font files are not loaded.");
-    }
+    // --- 핸들러 내부에서 await하여 폰트 데이터 사용 ---
+    const [pretendardBold, pretendardRegular] = await Promise.all([
+      pretendardBoldPromise,
+      pretendardRegularPromise,
+    ]);
+    // --- 여기까지 수정 ---
     
     const { searchParams } = new URL(req.url);
 
@@ -53,7 +55,7 @@ export async function GET(req: NextRequest) {
 
     if (imageUrl) {
       try {
-        const response = await fetch(imageUrl, { cache: 'no-store' }); // 캐시 사용 안함
+        const response = await fetch(imageUrl, { cache: 'no-store' });
         if (!response.ok) {
           throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
         }
@@ -73,7 +75,6 @@ export async function GET(req: NextRequest) {
 
       } catch (colorError) {
         console.error("Failed to extract dominant color:", colorError);
-        // 색상 추출 실패 시 기본 색상으로 계속 진행
       }
     }
 
@@ -86,11 +87,9 @@ export async function GET(req: NextRequest) {
           .trim()
       : '';
 
-    // ImageResponse 생성
     return new ImageResponse(
       (
         <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: backgroundColor, color: textColor, padding: '40px' }}>
-          {/* ... 기존 JSX 내용은 동일하므로 생략 ... */}
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ position: 'relative', width: 550, height: 550, display: 'flex' }}>
               {imageUrl && (
@@ -132,13 +131,11 @@ export async function GET(req: NextRequest) {
     );
 
   } catch (e: unknown) {
-    // --- 에러 발생 시, 에러 메시지를 담은 텍스트 응답을 반환하여 디버깅 용이하게 함 ---
     let errorMessage = 'An unknown error occurred';
     if (e instanceof Error) {
       errorMessage = e.message;
     }
     console.error(`OG Image generation failed: ${errorMessage}`);
-    // 에러 메시지를 담은 일반 텍스트 응답을 반환합니다.
     return new NextResponse(`Failed to generate the image: ${errorMessage}`, { status: 500 });
   }
 }

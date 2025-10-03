@@ -1028,18 +1028,29 @@ export async function POST(request: Request) {
 FILE: app/api/og/route.tsx
 ============================================================
 
+// app/api/og/route.tsx
+
 import { ImageResponse } from 'next/og';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { join } from 'path';
 import * as fs from 'fs';
 import sharp from 'sharp';
 
 export const runtime = 'nodejs';
 
-const fontBoldPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Black.otf');
-const fontRegularPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Medium.otf');
-const pretendardBold = fs.readFileSync(fontBoldPath);
-const pretendardRegular = fs.readFileSync(fontRegularPath);
+// --- 함수 밖으로 폰트 로딩 로직을 빼서 초기화 시 한 번만 실행되도록 수정 ---
+let pretendardBold: Buffer | null = null;
+let pretendardRegular: Buffer | null = null;
+try {
+  const fontBoldPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Black.otf');
+  const fontRegularPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Medium.otf');
+  pretendardBold = fs.readFileSync(fontBoldPath);
+  pretendardRegular = fs.readFileSync(fontRegularPath);
+} catch (fontError) {
+  console.error("Failed to load fonts:", fontError);
+  // 폰트 로딩 실패 시에도 서버가 죽지 않도록 처리
+}
+// --- 여기까지 수정 ---
 
 function getContrastingTextColor(r: number, g: number, b: number): string {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
@@ -1047,11 +1058,17 @@ function getContrastingTextColor(r: number, g: number, b: number): string {
 }
 
 export async function GET(req: NextRequest) {
+  // --- 전체를 try-catch로 감싸서 모든 에러를 잡습니다 ---
   try {
+    // 폰트가 로드되지 않았으면 에러 응답
+    if (!pretendardBold || !pretendardRegular) {
+      throw new Error("Server font files are not loaded.");
+    }
+    
     const { searchParams } = new URL(req.url);
 
     const title = searchParams.get('title') || '제목 없음';
-    const artist = searchParams.get('artist'); // 원본 본문 내용 (필터링 전)
+    const artist = searchParams.get('artist');
     const imageUrl = searchParams.get('imageUrl');
     const isBlurred = searchParams.get('isBlurred') === 'true';
     const isSpoiler = searchParams.get('isSpoiler') === 'true';
@@ -1066,7 +1083,10 @@ export async function GET(req: NextRequest) {
 
     if (imageUrl) {
       try {
-        const response = await fetch(imageUrl);
+        const response = await fetch(imageUrl, { cache: 'no-store' }); // 캐시 사용 안함
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        }
         const imageBuffer = await response.arrayBuffer();
         const { dominant } = await sharp(Buffer.from(imageBuffer)).stats();
         const { r, g, b } = dominant;
@@ -1076,114 +1096,62 @@ export async function GET(req: NextRequest) {
 
         if (textColor === '#FFFFFF') {
           tagBackgroundColor = 'rgba(255, 255, 255, 0.15)';
-          playButtonColor = `rgb(${r}, ${g}, ${b})`;
         } else {
           tagBackgroundColor = 'rgba(0, 0, 0, 0.1)';
-          playButtonColor = `rgb(${r}, ${g}, ${b})`;
         }
+        playButtonColor = `rgb(${r}, ${g}, ${b})`;
+
       } catch (colorError) {
         console.error("Failed to extract dominant color:", colorError);
+        // 색상 추출 실패 시 기본 색상으로 계속 진행
       }
     }
 
-    // ▼▼▼ 실시간 미리보기와 동일한 텍스트 필터링 로직 추가 ▼▼▼
     const previewText = artist
       ? artist
-          .replace(/!\[.*?\]\(.*?\)/g, '')   // Markdown 이미지 제거
-          .replace(/<img[^>]*>/gi, '')      // HTML 이미지 제거
-          .replace(/블러\[.*?\]/g, '')        // 스포일러 태그 제거
-          .replace(/\n/g, ' ')              // 줄바꿈을 공백으로 변환
+          .replace(/!\[.*?\]\(.*?\)/g, '')
+          .replace(/<img[^>]*>/gi, '')
+          .replace(/블러\[.*?\]/g, '')
+          .replace(/\n/g, ' ')
           .trim()
       : '';
-    // ▲▲▲ 여기까지 추가 ▲▲▲
 
+    // ImageResponse 생성
     return new ImageResponse(
       (
         <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: backgroundColor, color: textColor, padding: '40px' }}>
+          {/* ... 기존 JSX 내용은 동일하므로 생략 ... */}
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ position: 'relative', width: 550, height: 550, display: 'flex' }}>
               {imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={imageUrl}
                   alt=""
                   width={550}
                   height={550}
-                  style={{
-                    borderRadius: '20px',
-                    objectFit: 'cover',
-                    filter: isBlurred ? 'blur(40px)' : 'none',
-                  }}
+                  style={{ borderRadius: '20px', objectFit: 'cover', filter: isBlurred ? 'blur(40px)' : 'none' }}
                 />
               )}
               {isNsfw && (
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                  borderRadius: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" height="150" width="150" viewBox="0 0 640 512" fill="white">
-                    <path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7C559.7 341.5 584 285.4 597.8 232.2c1.1-4.4 1.1-9.1 0-13.5C580.5 164.6 539.4 96 468.6 41.2C408.4-1.9 344.7-13.5 283.5 1.7L38.8 5.1zM240 128a128 128 0 0 0-93.5 210.3L209.2 282c-10-24-8.5-52.3 5.8-74.3s38.3-36.8 63-38.2l51.9-41.5C301.7 132 272.1 128 240 128zM320 384c-35.3 0-68.7-12.1-96.6-33.9L262 311.9c13.4 10.9 30.6 17.1 48.8 17.1c52.9 0 96-43.1 96-96c0-18.2-5.2-35.4-14.2-50.2L427.2 215c15.2 21.5 24.8 47.3 24.8 74.2c0 88.4-71.6 160-160 160z"/>
-                  </svg>
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" height="150" width="150" viewBox="0 0 640 512" fill="white"><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7C559.7 341.5 584 285.4 597.8 232.2c1.1-4.4 1.1-9.1 0-13.5C580.5 164.6 539.4 96 468.6 41.2C408.4-1.9 344.7-13.5 283.5 1.7L38.8 5.1zM240 128a128 128 0 0 0-93.5 210.3L209.2 282c-10-24-8.5-52.3 5.8-74.3s38.3-36.8 63-38.2l51.9-41.5C301.7 132 272.1 128 240 128zM320 384c-35.3 0-68.7-12.1-96.6-33.9L262 311.9c13.4 10.9 30.6 17.1 48.8 17.1c52.9 0 96-43.1 96-96c0-18.2-5.2-35.4-14.2-50.2L427.2 215c15.2 21.5 24.8 47.3 24.8 74.2c0 88.4-71.6 160-160 160z"/></svg>
                 </div>
               )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '40px', flex: 1, justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.8 }}>
-                <svg xmlns="http://www.w3.org/2000/svg" height="80" width="80" viewBox="0 0 576 512" fill={textColor}>
-                  <path d="M305 151.1L320 171.8L335 151.1C360 116.5 400.2 96 442.9 96C516.4 96 576 155.6 576 229.1L576 231.7C576 343.9 436.1 474.2 363.1 529.9C350.7 539.3 335.5 544 320 544C304.5 544 289.2 539.4 276.9 529.9C203.9 474.2 64 343.9 64 231.7L64 229.1C64 155.6 123.6 96 197.1 96C239.8 96 280 116.5 305 151.1z"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" height="80" width="80" viewBox="0 0 576 512" fill={textColor}><path d="M305 151.1L320 171.8L335 151.1C360 116.5 400.2 96 442.9 96C516.4 96 576 155.6 576 229.1L576 231.7C576 343.9 436.1 474.2 363.1 529.9C350.7 539.3 335.5 544 320 544C304.5 544 289.2 539.4 276.9 529.9C203.9 474.2 64 343.9 64 231.7L64 229.1C64 155.6 123.6 96 197.1 96C239.8 96 280 116.5 305 151.1z"/></svg>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', fontFamily: '"PretendardJP-Black"' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-                  {tags.map((tag) => (
-                    <div
-                      key={tag}
-                      style={{
-                        display: 'flex',
-                        padding: '6px 16px',
-                        backgroundColor: tagBackgroundColor,
-                        borderRadius: '9999px',
-                        fontSize: '28px',
-                        fontFamily: '"PretendardJP-Medium"',
-                        fontWeight: 400,
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {tag}
-                    </div>
-                  ))}
+                  {tags.map((tag) => ( <div key={tag} style={{ display: 'flex', padding: '6px 16px', backgroundColor: tagBackgroundColor, borderRadius: '9999px', fontSize: '28px', fontFamily: '"PretendardJP-Medium"', fontWeight: 400, lineHeight: 1.2, }}>{tag}</div> ))}
                 </div>
-                <div style={{ fontSize: '60px', fontWeight: 'bold', letterSpacing: '-0.02em' }}>
-                  {title}
-                </div>
-                {/* ▼▼▼ artist 대신 정제된 previewText를 사용 ▼▼▼ */}
-                {previewText && (
-                  <div style={{
-                    fontSize: '40px',
-                    marginTop: '10px',
-                    opacity: 0.7,
-                    wordBreak: 'break-all',
-                    lineHeight: 1.3,
-                    fontFamily: '"PretendardJP-Medium"',
-                    fontWeight: 400,
-                  }}>
-                    {isSpoiler ? '내용이 가려졌습니다.' : previewText}
-                  </div>
-                )}
+                <div style={{ fontSize: '60px', fontWeight: 'bold', letterSpacing: '-0.02em' }}>{title}</div>
+                {previewText && (<div style={{ fontSize: '40px', marginTop: '10px', opacity: 0.7, wordBreak: 'break-all', lineHeight: 1.3, fontFamily: '"PretendardJP-Medium"', fontWeight: 400, }}>{isSpoiler ? '내용이 가려졌습니다.' : previewText}</div>)}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100px', height: '100px', backgroundColor: textColor, borderRadius: '50%' }}>
-                  <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 5.13965V18.8604C8 19.56 8.66274 20.0168 9.30852 19.642L20.6915 12.7816C21.3373 12.4078 21.3373 11.5922 20.6915 11.2184L9.30852 4.35795C8.66274 3.98317 8 4.44004 8 5.13965Z" fill={playButtonColor}/>
-                  </svg>
+                  <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 5.13965V18.8604C8 19.56 8.66274 20.0168 9.30852 19.642L20.6915 12.7816C21.3373 12.4078 21.3373 11.5922 20.6915 11.2184L9.30852 4.35795C8.66274 3.98317 8 4.44004 8 5.13965Z" fill={playButtonColor}/></svg>
                 </div>
               </div>
             </div>
@@ -1192,10 +1160,16 @@ export async function GET(req: NextRequest) {
       ),
       { width: 1200, height: 630, fonts: [{ name: 'PretendardJP-Black', data: pretendardBold, style: 'normal', weight: 800 }, { name: 'PretendardJP-Medium', data: pretendardRegular, style: 'normal', weight: 400 }] },
     );
+
   } catch (e: unknown) {
-    if (e instanceof Error) console.error(`OG Image generation failed: ${e.message}`);
-    else console.error('An unknown error occurred during OG Image generation');
-    return new Response(`Failed to generate the image`, { status: 500 });
+    // --- 에러 발생 시, 에러 메시지를 담은 텍스트 응답을 반환하여 디버깅 용이하게 함 ---
+    let errorMessage = 'An unknown error occurred';
+    if (e instanceof Error) {
+      errorMessage = e.message;
+    }
+    console.error(`OG Image generation failed: ${errorMessage}`);
+    // 에러 메시지를 담은 일반 텍스트 응답을 반환합니다.
+    return new NextResponse(`Failed to generate the image: ${errorMessage}`, { status: 500 });
   }
 }
 
@@ -1241,5 +1215,119 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '비밀번호 확인 중 서버 에러가 발생했습니다.' }, { status: 500 });
   }
 }
+
+============================================================
+FILE: "C:\Users\user\Downloads\Rproject\private-media-sharer\app\view\[id]\page.tsx"
+============================================================
+
+import { notFound } from 'next/navigation';
+import { db } from '@vercel/postgres';
+import type { Metadata } from 'next';
+import { unstable_noStore as noStore } from 'next/cache';
+import PostContent from './PostContent';
+import PasswordProtect from './PasswordProtect';
+
+interface Post {
+  id: string;
+  title: string;
+  tags: string | null;
+  content: string;
+  thumbnail_url: string;
+  is_thumbnail_blurred: boolean;
+  is_content_spoiler: boolean;
+  is_nsfw: boolean;
+  font_family: string | null;
+  password: string | null;
+  created_at: string;
+}
+
+async function getPostData(id: string): Promise<Post | null> {
+  noStore();
+  try {
+    const { rows } = await db.sql`SELECT * FROM posts WHERE id = ${id} LIMIT 1;`;
+    if (rows.length === 0) return null;
+    return rows[0] as Post;
+  } catch (error) {
+    console.error("Database query failed:", error);
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: { params: { id:string } }): Promise<Metadata> {
+  const post = await getPostData(params.id);
+
+  if (!post) {
+    return { title: '게시물을 찾을 수 없습니다' };
+  }
+
+  // ▼▼▼ OG 이미지 URL에 사용할 안전한 설명 텍스트 생성 ▼▼▼
+  const cleanDescriptionForOg = post.content
+    ? post.content
+        .replace(/!\[.*?\]\(.*?\)/g, '')   // Markdown 이미지 제거
+        .replace(/<img[^>]*>/gi, '')      // HTML 이미지 제거
+        .replace(/블러\[.*?\]/g, '')        // 스포일러 태그 제거
+        .replace(/[`*_{}[\]()#+\-.!]/g, '') // 일반적인 마크다운 특수 문자 제거
+        .replace(/\s+/g, ' ')             // 여러 공백을 하나로 축소
+        .trim()
+        .substring(0, 100)                // URL 길이를 위해 100자로 제한
+    : '';
+  // ▲▲▲ 여기까지 추가 ▲▲▲
+
+  // SNS 텍스트 미리보기에 표시될 설명 (기존 로직 유지)
+  const displayDescription = post.is_content_spoiler 
+    ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' 
+    : cleanDescriptionForOg || '친구로부터 공유된 게시물을 확인하세요.';
+
+  const ogImageUrl = new URL(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/og`);
+  ogImageUrl.searchParams.set('title', post.title);
+  
+  // ▼▼▼ 'artist' 파라미터에 안전하게 정제된 텍스트 사용 ▼▼▼
+  if (cleanDescriptionForOg) {
+    ogImageUrl.searchParams.set('artist', cleanDescriptionForOg);
+  }
+  // ▲▲▲ 여기까지 수정 ▲▲▲
+
+  ogImageUrl.searchParams.set('imageUrl', post.thumbnail_url);
+  ogImageUrl.searchParams.set('isBlurred', String(post.is_thumbnail_blurred));
+  ogImageUrl.searchParams.set('isSpoiler', String(post.is_content_spoiler));
+  ogImageUrl.searchParams.set('isNsfw', String(post.is_nsfw));
+  
+  if (post.tags) {
+    ogImageUrl.searchParams.set('tags', post.tags);
+  }
+
+  return {
+    title: post.title,
+    description: displayDescription,
+    openGraph: {
+      title: post.title,
+      description: displayDescription,
+      images: [ogImageUrl.toString()],
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: displayDescription,
+      images: [ogImageUrl.toString()],
+    },
+  };
+}
+
+export default async function ViewPage({ params }: { params: { id: string } }) {
+  const post = await getPostData(params.id);
+  if (!post) notFound();
+  
+  return (
+    <main className={`flex min-h-screen items-center justify-center bg-gray-100 py-8 px-4 ${post.font_family || 'font-pretendard'}`}>
+      {post.password ? (
+        <PasswordProtect post={post} />
+      ) : (
+        <PostContent post={post} />
+      )}
+    </main>
+  );
+}
+
 
 --- END OF FILE merged_code_context.txt ---
