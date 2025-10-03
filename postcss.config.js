@@ -1,8 +1,8 @@
-// postcss.config.js (수정된 버전)
+// postcss.config.js (최종 수정안)
 
 module.exports = {
-  plugins: {
-    'tailwindcss/postcss': {}, // 'tailwindcss' 대신 더 구체적인 경로로 변경
-    autoprefixer: {},
-  },
+  plugins: [
+    'tailwindcss', // require()나 객체 대신, 단순 문자열 배열로 지정
+    'autoprefixer',
+  ],
 };
