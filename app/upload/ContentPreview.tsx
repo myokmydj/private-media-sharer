@@ -42,7 +42,6 @@ export default function ContentPreview({ content, fontClass, onImageResize }: Co
             rehypePlugins={[rehypeRaw]}
             components={{
               p: ({ node, children }) => {
-                // ▼▼▼ node가 undefined일 경우를 대비한 방어 코드 추가 ▼▼▼
                 if (!node) {
                   return <p>{children}</p>;
                 }
@@ -54,20 +53,26 @@ export default function ContentPreview({ content, fontClass, onImageResize }: Co
                 ) {
                   return <>{children}</>;
                 }
-                // ▲▲▲ 여기까지 수정 ▲▲▲
                 return <p>{children}</p>;
               },
+              // ▼▼▼ src가 string 타입인지 확인하는 로직 추가 ▼▼▼
               img: ({ src, alt, width }) => {
+                // src가 문자열이 아니면 렌더링하지 않음 (오류 방지)
+                if (typeof src !== 'string') {
+                  return null;
+                }
+
                 const currentWidth = width ? Number(width) : undefined;
                 return (
                   <ResizableImage 
-                    src={src || ''} 
+                    src={src} // 이제 src는 string 타입임이 보장됨
                     alt={alt || ''}
                     currentWidth={currentWidth}
                     onResize={onImageResize}
                   />
                 );
               }
+              // ▲▲▲ 여기까지 수정 ▲▲▲
             }}
           >
             {processedContent}
