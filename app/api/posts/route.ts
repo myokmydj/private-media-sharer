@@ -1,25 +1,21 @@
 import { NextResponse } from 'next/server';
 import { db } from '@vercel/postgres';
 import { nanoid } from 'nanoid';
-import bcrypt from 'bcrypt';
-
-// sharp와 getContrastingTextColor 함수를 완전히 제거합니다.
+// ▼▼▼ import 경로만 변경 ▼▼▼
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
-    // ▼▼▼ dominantColor와 textColor를 request body에서 직접 받습니다 ▼▼▼
     const { 
       title, tags, content, thumbnailUrl, 
       isThumbnailBlurred, isContentSpoiler, isNsfw,
       selectedFont, password,
-      dominantColor, textColor // 클라이언트가 분석한 색상 값
+      dominantColor, textColor
     } = await request.json();
 
     if (!title || !content || !thumbnailUrl) {
       return NextResponse.json({ error: '제목, 내용, 대표 이미지는 필수입니다.' }, { status: 400 });
     }
-
-    // 서버에서의 색상 분석 로직을 모두 삭제했습니다.
 
     let hashedPassword = null;
     if (password && password.length > 0) {

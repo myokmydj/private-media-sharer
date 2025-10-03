@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@vercel/postgres';
-import bcrypt from 'bcrypt';
+// ▼▼▼ import 경로만 변경 ▼▼▼
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +19,6 @@ export async function POST(request: Request) {
 
     const hashedPassword = rows[0].password;
     if (!hashedPassword) {
-        // DB에 비밀번호가 없는 경우 (오류 상황)
         return NextResponse.json({ error: '이 게시물에는 비밀번호가 설정되어 있지 않습니다.' }, { status: 400 });
     }
 
