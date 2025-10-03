@@ -196,7 +196,6 @@
     font-weight: 900;
     font-display: swap;
 }
-/* ▲▲▲ 여기까지 수정 ▲▲▲ */
 
 @tailwind base;
 @tailwind components;
