@@ -5,12 +5,15 @@ import Image from 'next/image';
 
 export default function UploadPage() {
   const [title, setTitle] = useState('');
+  // ▼▼▼ tags 상태 추가 ▼▼▼
+  const [tags, setTags] = useState('');
+  // ▲▲▲ tags 상태 추가 ▲▲▲
   const [content, setContent] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
   const [isBlurred, setIsBlurred] = useState(false);
   const [isSpoiler, setIsSpoiler] = useState(false);
-  const [isNsfw, setIsNsfw] = useState(false); // NSFW 상태 추가
+  const [isNsfw, setIsNsfw] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
@@ -26,6 +29,7 @@ export default function UploadPage() {
     'font-freesentation': '프리젠테이션 (고딕)',
   };
 
+  // ... (handleThumbnailUpload, handleFileChange 함수는 변경 없음) ...
   const handleThumbnailUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -65,6 +69,7 @@ export default function UploadPage() {
     setIsUploading(false);
   };
 
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!title || !content || !thumbnailUrl) {
@@ -81,11 +86,14 @@ export default function UploadPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           title, 
+          // ▼▼▼ tags 데이터 전송 ▼▼▼
+          tags,
+          // ▲▲▲ tags 데이터 전송 ▲▲▲
           content, 
           thumbnailUrl,
           isThumbnailBlurred: isBlurred,
           isContentSpoiler: isSpoiler,
-          isNsfw, // isNsfw 데이터 전송
+          isNsfw,
           selectedFont,
           password,
         }),
@@ -96,11 +104,14 @@ export default function UploadPage() {
 
       setGeneratedLink(data.url);
       setTitle('');
+      // ▼▼▼ tags 상태 초기화 ▼▼▼
+      setTags('');
+      // ▲▲▲ tags 상태 초기화 ▲▲▲
       setContent('');
       setThumbnailUrl('');
       setIsBlurred(false);
       setIsSpoiler(false);
-      setIsNsfw(false); // isNsfw 상태 초기화
+      setIsNsfw(false);
       setPassword('');
 
     } catch (err) {
@@ -110,6 +121,7 @@ export default function UploadPage() {
     }
   };
 
+  // ... (insertSpoilerText 함수는 변경 없음) ...
   const insertSpoilerText = () => {
     const textarea = contentRef.current;
     if (!textarea) return;
@@ -129,6 +141,7 @@ export default function UploadPage() {
     }, 0);
   };
 
+
   return (
     <main className={`flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 bg-gray-100 ${selectedFont}`}>
       <div className="w-full max-w-3xl p-8 space-y-6 bg-white rounded-lg shadow-md">
@@ -144,6 +157,20 @@ export default function UploadPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div><label htmlFor="title" className="block text-sm font-medium text-gray-700">제목</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required /></div>
           
+          {/* ▼▼▼ 태그 입력 필드 추가 ▼▼▼ */}
+          <div>
+            <label htmlFor="tags" className="block text-sm font-medium text-gray-700">태그</label>
+            <input 
+              id="tags" 
+              type="text" 
+              value={tags} 
+              onChange={(e) => setTags(e.target.value)} 
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" 
+              placeholder="태그를 쉼표(,)로 구분하여 입력하세요 (예: NSFW, 민감한 내용)"
+            />
+          </div>
+          {/* ▲▲▲ 태그 입력 필드 추가 ▲▲▲ */}
+
           <div>
             <label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700">대표 이미지 (SNS 미리보기에 사용)</label>
             <input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />
