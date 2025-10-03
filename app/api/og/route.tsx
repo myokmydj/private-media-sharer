@@ -1,8 +1,10 @@
-// app/api/og/route.tsx
-
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
 import { pretendardBold, pretendardRegular } from '@/.generated/fonts';
+
+// ▼▼▼ 이 한 줄이 모든 문제를 해결합니다 ▼▼▼
+export const dynamic = 'force-dynamic';
+// ▲▲▲ 여기까지 추가 ▲▲▲
 
 export const runtime = 'nodejs';
 
@@ -19,18 +21,14 @@ export async function GET(req: NextRequest) {
     const tagsParam = searchParams.get('tags');
     const tags = tagsParam ? tagsParam.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
-    // ▼▼▼ 실시간 분석 대신 URL 파라미터에서 색상 값을 직접 받습니다 ▼▼▼
     const backgroundColor = searchParams.get('bgColor') || '#28234D';
     const textColor = searchParams.get('textColor') || '#FFFFFF';
-    // ▲▲▲ 여기까지 수정 ▲▲▲
 
     let tagBackgroundColor = 'rgba(255, 255, 255, 0.15)';
     if (textColor === '#000000') {
       tagBackgroundColor = 'rgba(0, 0, 0, 0.1)';
     }
     const playButtonColor = backgroundColor;
-
-    // sharp를 이용한 실시간 색상 분석 로직 전체 삭제!
 
     const previewText = artist
       ? artist
@@ -41,14 +39,13 @@ export async function GET(req: NextRequest) {
           .trim()
       : '';
 
-    // ... ImageResponse JSX 부분은 기존과 동일하므로 생략 ...
-    // (backgroundColor와 textColor 변수를 그대로 사용하면 됩니다)
     return new ImageResponse(
       (
         <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: backgroundColor, color: textColor, padding: '40px' }}>
           <div style={{ display: 'flex', width: '100%', height: '100%' }}>
             <div style={{ position: 'relative', width: 550, height: 550, display: 'flex' }}>
               {imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={imageUrl}
                   alt=""
