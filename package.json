@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    // "prebuild": "node ./scripts/convert-fonts.js", // 이 줄을 삭제하거나 주석 처리
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -38,9 +37,4 @@
     "autoprefixer": "^10.4.21",
     "dotenv": "^17.2.3",
     "eslint": "^8.57.0",
-    "eslint-config-next": "14.2.5",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.3.0",
-    "typescript": "^5"
-  }
-}
+    "eslint-config-next": "14.2
