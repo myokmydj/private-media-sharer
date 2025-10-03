@@ -1,7 +1,7 @@
 {
   "Header": {
     "welcome": "Welcome, {name}!",
-    "myProfile": "My Profile", // 추가
+    "myProfile": "My Profile",
     "myPosts": "My Posts",
     "writePost": "Write",
     "logout": "Log Out",

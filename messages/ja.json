@@ -1,7 +1,7 @@
 {
   "Header": {
     "welcome": "{name}さん、ようこそ！",
-    "myProfile": "マイプロフィール", // 추가
+    "myProfile": "マイプロフィール",
     "myPosts": "マイ投稿",
     "writePost": "作成",
     "logout": "ログアウト",
