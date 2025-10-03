@@ -23,7 +23,9 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // /api, /_next/static, /_next/image, /favicon.ico 를 제외한 모든 경로
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // ▼▼▼ [수정] 아래 matcher의 정규식을 수정합니다. ▼▼▼
+    // api, _next/static, _next/image, favicon.ico 및 확장자가 있는 파일(이미지 등)을 제외
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
+    // ▲▲▲ 여기까지 수정 ▲▲▲
   ],
 };

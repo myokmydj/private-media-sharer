@@ -1,4 +1,4 @@
-
+// app/[locale]/login/page.tsx (덮어쓰기)
 'use client';
 
 import { useState, FormEvent, Suspense } from 'react';
@@ -36,26 +36,29 @@ function LoginForm() {
     }
   };
 
+  const inputStyle = "mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-sm";
+  const buttonStyle = "w-full px-4 py-2.5 text-base font-semibold text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400";
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold text-center text-gray-900">로그인</h1>
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-sm p-8 space-y-6 bg-white rounded-xl border border-gray-200">
+        <h1 className="text-2xl font-bold text-center text-gray-900">로그인</h1>
         {signupSuccess && (
-          <p className="text-sm text-center text-green-600 bg-green-100 p-3 rounded-md">
-            회원가입이 성공적으로 완료되었습니다. 로그인해주세요.
+          <p className="text-sm text-center text-green-700 bg-green-50 p-3 rounded-md border border-green-200">
+            회원가입이 완료되었습니다. 로그인해주세요.
           </p>
         )}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">이메일</label>
-            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputStyle} />
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호</label>
-            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={inputStyle} />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={isLoading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">
+          <button type="submit" disabled={isLoading} className={buttonStyle}>
             {isLoading ? '로그인 중...' : '로그인'}
           </button>
         </form>

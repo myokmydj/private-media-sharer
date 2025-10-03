@@ -1,4 +1,4 @@
-// components/FollowListModal.tsx (새 파일)
+// components/FollowListModal.tsx (덮어쓰기)
 'use client';
 
 import Image from 'next/image';
@@ -31,34 +31,34 @@ export default function FollowListModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200">
-            <X size={20} />
+    <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex justify-center items-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+            <X size={18} />
           </button>
         </div>
-        <div className="p-4 max-h-[60vh] overflow-y-auto">
+        <div className="p-2 max-h-[60vh] overflow-y-auto">
           {isLoading ? (
-            <p className="text-center text-gray-500">불러오는 중...</p>
+            <div className="py-10 text-center text-sm text-gray-500">Loading...</div>
           ) : users.length === 0 ? (
-            <p className="text-center text-gray-500">사용자가 없습니다.</p>
+            <div className="py-10 text-center text-sm text-gray-500">No users found.</div>
           ) : (
-            <ul className="space-y-3">
+            <ul className="divide-y divide-gray-100">
               {users.map((user) => (
-                <li key={user.id} className="flex items-center justify-between">
+                <li key={user.id} className="flex items-center justify-between p-2">
                   <Link href={`/profile/${user.id}`} className="flex items-center gap-3 group" onClick={onClose}>
                     <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
                       <Image
-                        src={user.image || '/default-avatar.png'} // 기본 아바타 이미지 경로
+                        src={user.image || '/default-avatar.png'}
                         alt={user.name}
                         fill
                         className="object-cover"
                         sizes="40px"
                       />
                     </div>
-                    <span className="font-medium group-hover:underline">{user.name}</span>
+                    <span className="font-medium text-sm text-gray-800 group-hover:underline">{user.name}</span>
                   </Link>
                   <FollowButton
                     targetUserId={user.id}

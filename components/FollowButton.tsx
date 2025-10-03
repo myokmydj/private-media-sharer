@@ -1,4 +1,4 @@
-// components/FollowButton.tsx (전체 코드)
+// components/FollowButton.tsx (덮어쓰기)
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -20,46 +20,46 @@ export default function FollowButton({ targetUserId, isInitiallyFollowing }: Fol
 
   if (status === 'unauthenticated') {
     return (
-      <button onClick={() => router.push('/login')} className="px-4 py-1.5 text-sm font-semibold rounded-full bg-gray-900 text-white hover:bg-gray-700">
+      <button onClick={() => router.push('/login')} className="px-4 py-1.5 text-xs font-semibold rounded-full bg-gray-800 text-white hover:bg-gray-700">
         Follow
       </button>
     );
   }
 
   if (!session || session.user.id === String(targetUserId)) {
-    return null; // 자기 자신 프로필에선 안 보임
+    return null;
   }
 
   const handleClick = async () => {
-    const action = isFollowing ? 'unfollow' : 'follow';
-    try {
-      const res = await fetch(`/api/users/${targetUserId}/follow`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) {
-        setIsFollowing(!isFollowing);
-        startTransition(() => {
-          router.refresh(); // 서버 데이터를 다시 불러와 팔로워 수 등을 갱신
+    startTransition(async () => {
+      const action = isFollowing ? 'unfollow' : 'follow';
+      try {
+        const res = await fetch(`/api/users/${targetUserId}/follow`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
         });
-      } else {
-        console.error('Follow action failed');
+        if (res.ok) {
+          setIsFollowing(!isFollowing);
+          router.refresh();
+        } else {
+          console.error('Follow action failed');
+        }
+      } catch (error) {
+        console.error(error);
       }
-    } catch (error) {
-      console.error(error);
-    }
+    });
   };
+
+  const baseStyle = "w-24 px-4 py-1.5 text-xs font-semibold rounded-full transition-colors disabled:opacity-50";
+  const followingStyle = "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100";
+  const followStyle = "bg-gray-800 text-white hover:bg-gray-700 border border-transparent";
 
   return (
     <button
       onClick={handleClick}
       disabled={isLoading}
-      className={`w-28 px-4 py-1.5 text-sm font-semibold rounded-full transition-colors disabled:opacity-50 ${
-        isFollowing
-          ? 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-100'
-          : 'bg-gray-900 text-white hover:bg-gray-700'
-      }`}
+      className={`${baseStyle} ${isFollowing ? followingStyle : followStyle}`}
     >
       {isLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
     </button>
