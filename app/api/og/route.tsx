@@ -5,7 +5,7 @@ import * as fs from 'fs';
 
 export const runtime = 'nodejs';
 
-const fontPath = join(process.cwd(), 'public', 'fonts', 'Pretendard-Bold.otf');
+const fontPath = join(process.cwd(), 'public', 'fonts', 'PretendardJP-Black.otf');
 const pretendardBold = fs.readFileSync(fontPath);
 
 export async function GET(req: NextRequest) {
