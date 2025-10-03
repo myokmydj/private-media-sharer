@@ -45,7 +45,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const ogImageUrl = new URL(`${baseUrl}/api/og/memo`);
   ogImageUrl.searchParams.set('userId', String(memo.user_id));
   ogImageUrl.searchParams.set('content', memo.content);
-  ogImageUrl.search_params.set('spoilerIcon', memo.spoiler_icon);
+  // ▼▼▼ [수정] search_params -> searchParams 로 오타를 수정합니다. ▼▼▼
+  ogImageUrl.searchParams.set('spoilerIcon', memo.spoiler_icon);
+  // ▲▲▲ 여기까지 수정 ▲▲▲
 
   return {
     title: `${memo.author_name}님의 메모`,
@@ -65,7 +67,6 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-// ▼▼▼ [추가] 메모 접근 권한을 확인하는 함수 ▼▼▼
 async function checkMemoPermission(memo: Memo, viewerId: number | null): Promise<boolean> {
   const authorId = memo.user_id;
   if (memo.visibility === 'public' || !memo.visibility) {
@@ -81,7 +82,6 @@ async function checkMemoPermission(memo: Memo, viewerId: number | null): Promise
 }
 
 export default async function ViewMemoPage({ params }: { params: { id: string } }) {
-  // ▼▼▼ [수정] 권한 확인 로직 전체 추가 ▼▼▼
   const session = await getServerSession(authOptions);
   const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
   const memo = await getMemoData(params.id);
@@ -107,5 +107,4 @@ export default async function ViewMemoPage({ params }: { params: { id: string } 
       <MemoContent memo={memo} />
     </main>
   );
-  // ▲▲▲ 여기까지 수정 ▲▲▲
 }
