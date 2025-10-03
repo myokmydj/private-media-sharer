@@ -1,4 +1,4 @@
-// app/[locale]/upload/ContentPreview.tsx (최종 완성)
+// app/[locale]/upload/ContentPreview.tsx (덮어쓰기)
 
 'use client';
 
@@ -14,9 +14,18 @@ interface ContentPreviewProps {
   content: string;
   fontClass: string;
   onImageResize: (src: string, newWidth: number) => void;
+  // ▼▼▼ [추가] 자간, 행간 props 타입 추가 ▼▼▼
+  letterSpacing?: string;
+  lineHeight?: string;
 }
 
-export default function ContentPreview({ content, fontClass, onImageResize }: ContentPreviewProps) {
+export default function ContentPreview({ 
+  content, 
+  fontClass, 
+  onImageResize,
+  letterSpacing, // ▼▼▼ props 받기
+  lineHeight,    // ▼▼▼ props 받기
+}: ContentPreviewProps) {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -37,17 +46,26 @@ export default function ContentPreview({ content, fontClass, onImageResize }: Co
 
   const processedContent = processContentForSpoilers(content);
 
+  // ▼▼▼ [추가] 자간, 행간을 위한 인라인 스타일 객체 생성 ▼▼▼
+  const previewStyle = {
+    letterSpacing: letterSpacing === '0' || !letterSpacing ? 'normal' : `${letterSpacing}em`,
+    lineHeight: lineHeight || '1.75',
+  };
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2 text-gray-800">본문 미리보기</h3>
+      {/* ▼▼▼ [추가] 이미지 리사이즈 안내 문구 ▼▼▼ */}
+      <p className="text-xs text-gray-500 mb-2 -mt-1">
+        본문 내 이미지는 우측 하단 핸들을 클릭하여 크기를 조절할 수 있습니다.
+      </p>
       <div 
         className={`prose lg:prose-lg w-full max-w-none bg-white p-6 sm:p-8 rounded-lg shadow-lg border min-h-[200px] ${fontClass}`}
         onClick={handleSpoilerClick}
+        style={previewStyle} // ▼▼▼ [수정] style 속성 적용
       >
-        {/* 서버와 초기 렌더링 시에는 이 부분을 렌더링합니다. */}
         {!isClient && <p className="text-gray-400">미리보기를 불러오는 중...</p>}
         
-        {/* 클라이언트에서 마운트된 후에만 ReactMarkdown을 렌더링합니다. */}
         {isClient && content ? (
           <ReactMarkdown 
             remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}

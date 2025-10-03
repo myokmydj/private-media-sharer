@@ -1,5 +1,4 @@
-// types/index.ts (전체 코드)
-
+// types/index.ts (덮어쓰기)
 export interface Post {
   id: string;
   title: string;
@@ -16,5 +15,20 @@ export interface Post {
   text_color: string | null;
   user_id?: number;
   visibility?: string;
-  author_name?: string; // ▼▼▼ 작성자 이름을 위해 추가 ▼▼▼
+  author_name?: string;
+  letter_spacing?: string;
+  line_height?: string;
+  og_font?: string;
+}
+
+export interface Memo {
+  id: string;
+  user_id: number;
+  content: string;
+  spoiler_icon: string;
+  visibility: string;
+  created_at: string;
+  author_name: string;
+  author_image: string | null;
+  author_header_image?: string | null;
 }

@@ -202,6 +202,16 @@
 @tailwind utilities;
 
 
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-800 font-freesentation font-medium;
+  }
+  /* strong 태그나 font-bold 클래스에 weight 900을 적용 */
+  strong, b, .font-bold {
+    @apply font-black;
+  }
+}
+
 .spoiler {
   background-color: #333;
   color: transparent;

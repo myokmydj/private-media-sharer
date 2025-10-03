@@ -3,7 +3,6 @@
     "welcome": "Welcome, {name}!",
     "myProfile": "My Profile",
     "myPosts": "My Posts",
-    "writePost": "Write",
     "logout": "Log Out",
     "login": "Log In",
     "signup": "Sign Up"

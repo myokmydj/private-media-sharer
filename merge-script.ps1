@@ -1,93 +1,62 @@
+# merge-script.ps1 (Final, Corrected Version)
+
 # --- Configuration ---
+$ProjectRoot = $PSScriptRoot
+$OutputFile = Join-Path $ProjectRoot "merged_code_context.txt"
+$ExcludeDirs = @('node_modules', '.git', '.next', 'out', 'build', 'dist', '.generated')
+$ExcludeExtensions = @('.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.ttf', '.otf', '.woff', '.woff2', '.eot', '.zip', '.gz', '.lock')
+$ExcludeFiles = @('merged_code_context.txt', 'merge-script.ps1', 'package-lock.json')
 
-# 1. The name of the output file.
-$outputFile = "merged_code_context.txt"
+# --- Script Execution ---
+Write-Host "Starting project file merge..." -ForegroundColor Green
 
-# 2. List of directories to exclude from the merge.
-$excludeDirs = @(
-    'node_modules',
-    '.next',
-    '.vercel',
-    '.git',
-    '.generated',
-    'dist',
-    'out',
-    'build',
-    'coverage',
-    'logs',
-    'temp',
-    'tmp',
-    'vendor',
-    'bin',
-    'obj',
-    'tests',
-    'test',
-    'spec',
-    'test-results',
-    'package-lock.json'
-)
-
-# 3. List of file extensions to exclude.
-$excludeExtensions = @(
-    '.jpg', '.jpeg', '.png', '.gif', '.svg', '.ico',
-    '.woff', '.woff2', '.ttf', '.otf', '.eot',
-    '.lock',
-    '.ps1'
-)
-
-# --- Script Body ---
-
-$scriptRoot = (Get-Location).Path
-
-if (Test-Path $outputFile) {
-    Remove-Item $outputFile
+# Use -LiteralPath to handle special characters like '[]' in paths
+if (Test-Path -LiteralPath $OutputFile) {
+    Remove-Item -LiteralPath $OutputFile -Force
 }
 
-$excludeDirPattern = ($excludeDirs | ForEach-Object { [regex]::Escape($_) }) -join '|'
-$excludeExtPattern = ($excludeExtensions | ForEach-Object { [regex]::Escape($_) }) -join '$|'
-$excludeExtPattern += '$'
+# --- Get All Files and Filter Them ---
+# Use -LiteralPath to prevent wildcard expansion for paths containing '[]'
+$filesToMerge = Get-ChildItem -LiteralPath $ProjectRoot -Recurse -File | Where-Object {
+    $file = $_
+    $isExcluded = $false
 
-Write-Host "Starting project file merge..."
-Write-Host "Output file: $outputFile"
-Write-Host "Excluding directories: $($excludeDirs -join ', ')"
-Write-Host "Excluding extensions: $($excludeExtensions -join ', ')"
-Write-Host "--------------------------------------------------"
+    # Exclusion Check 1: Directories
+    foreach ($dir in $ExcludeDirs) {
+        # This is a string comparison, so it's safe.
+        $excludePath = (Join-Path $ProjectRoot $dir) + "\"
+        if ($file.FullName.ToLower().StartsWith($excludePath.ToLower())) {
+            $isExcluded = $true
+            break
+        }
+    }
+    if ($isExcluded) { return $false }
 
-$filesToMerge = Get-ChildItem -Path $scriptRoot -Recurse | Where-Object {
-    !$_.PSIsContainer -and $_.FullName -notmatch $excludeDirPattern -and $_.Extension -notmatch $excludeExtPattern
-}
-
-# Use Out-File for initial creation with correct encoding. This is highly compatible.
-"--- START OF FILE merged_code_context.txt ---`n" | Out-File -FilePath $outputFile -Encoding utf8
-
-foreach ($file in $filesToMerge) {
-    $relativePath = $file.FullName.Substring($scriptRoot.Length + 1)
-    
-    Write-Host "Merging: $relativePath"
-    
-    $header = @"
-
-============================================================
-FILE: $relativePath
-============================================================
-
-"@
-    
-    # Use the .NET Framework directly for maximum compatibility to read files in UTF-8.
-    # This bypasses PowerShell version limitations for Get-Content.
-    try {
-        $content = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
-    } catch {
-        Write-Warning "Could not read file $($file.FullName) as UTF-8. Trying default encoding. Error: $_"
-        # If UTF-8 fails (e.g., for binary-like files), try again with default encoding.
-        $content = [System.IO.File]::ReadAllText($file.FullName)
+    # Exclusion Check 2: Extensions and Filenames
+    if (($ExcludeExtensions -contains $file.Extension.ToLower()) -or ($ExcludeFiles -contains $file.Name.ToLower())) {
+        return $false
     }
     
-    # Use Out-File with -Append for stable file writing across all versions.
-    ($header + $content) | Out-File -FilePath $outputFile -Append -Encoding utf8
+    return $true
 }
 
-"`n--- END OF FILE merged_code_context.txt ---" | Out-File -FilePath $outputFile -Append -Encoding utf8
+# --- Merging Logic ---
+foreach ($file in $filesToMerge) {
+    $relativePath = $file.FullName.Substring($ProjectRoot.Length + 1).Replace('\', '/')
+    $header = "============================================================`nFILE: $relativePath`n============================================================"
+    Add-Content -LiteralPath $OutputFile -Value $header -Encoding Utf8
 
-Write-Host "--------------------------------------------------"
-Write-Host "✅ Done! Merged $($filesToMerge.Count) files into '$outputFile'."
+    try {
+        Get-Content -LiteralPath $file.FullName -Encoding UTF8 -ErrorAction Stop | Add-Content -LiteralPath $OutputFile -Encoding UTF8
+    }
+    catch {
+        Write-Warning "Could not read $($file.FullName) as UTF-8. Retrying with default encoding."
+        Get-Content -LiteralPath $file.FullName | Add-Content -LiteralPath $OutputFile -Encoding UTF8
+    }
+    
+    Add-Content -LiteralPath $OutputFile -Value "" -Encoding Utf8
+}
+
+$fileCount = $filesToMerge.Count
+Write-Host "Successfully merged $fileCount files." -ForegroundColor Green
+Write-Host "Result saved to '$OutputFile'"

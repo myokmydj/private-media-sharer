@@ -1,7 +1,4 @@
-﻿--- START OF FILE merged_code_context.txt ---
-
-
-============================================================
+﻿============================================================
 FILE: .env.local
 ============================================================
 # Recommended for most uses
@@ -47,6 +44,51 @@ FILE: .eslintignore.txt
 .generated/fonts.ts
 
 ============================================================
+FILE: .gitignore
+============================================================
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+============================================================
 FILE: eslint.config.mjs
 ============================================================
 import { dirname } from "path";
@@ -75,11 +117,9 @@ const eslintConfig = [
 
 export default eslintConfig;
 
-
 ============================================================
 FILE: git
 ============================================================
-
 
 ============================================================
 FILE: middleware.ts
@@ -109,8 +149,10 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // /api, /_next/static, /_next/image, /favicon.ico 를 제외한 모든 경로
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // ▼▼▼ [수정] 아래 matcher의 정규식을 수정합니다. ▼▼▼
+    // api, _next/static, _next/image, favicon.ico 및 확장자가 있는 파일(이미지 등)을 제외
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
+    // ▲▲▲ 여기까지 수정 ▲▲▲
   ],
 };
 
@@ -122,7 +164,6 @@ FILE: next-env.d.ts
 
 // NOTE: This file should not be edited
 // see https://nextjs.org/docs/basic-features/typescript for more information.
-
 
 ============================================================
 FILE: next.config.js
@@ -240,14 +281,12 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-
 ============================================================
 FILE: tailwind.config.ts
 ============================================================
-// tailwind.config.ts
-
+// tailwind.config.ts (덮어쓰기)
 import type { Config } from 'tailwindcss';
-import colors from 'tailwindcss/colors'; // tailwindcss colors import
+import colors from 'tailwindcss/colors';
 
 const config: Config = {
   content: [
@@ -256,6 +295,22 @@ const config: Config = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    extend: {
+      fontFamily: {
+        // ▼▼▼ 기본 sans 폰트를 Freesentation으로 변경 ▼▼▼
+        sans: ['Freesentation', 'sans-serif'], 
+        // ▼▼▼ 본문에서 선택 가능한 폰트 목록 ▼▼▼
+        pretendard: ['Pretendard', 'sans-serif'],
+        bookkmyungjo: ['BookkMyungjo', 'serif'],
+        freesentation: ['Freesentation', 'sans-serif'],
+        paperozi: ['Paperozi', 'sans-serif'],
+      },
+      // ▼▼▼ Freesentation 폰트 두께를 직접 매핑 ▼▼▼
+      fontWeight: {
+        medium: '500',
+        black: '900',
+      },
+    },
     colors: {
       transparent: 'transparent',
       current: 'currentColor',
@@ -263,15 +318,6 @@ const config: Config = {
       white: colors.white,
       gray: colors.gray,
       red: colors.red,
-    },
-    extend: {
-      fontFamily: {
-        pretendard: ['Pretendard', 'sans-serif'],
-        bookkmyungjo: ['BookkMyungjo', 'serif'],
-        freesentation: ['Freesentation', 'sans-serif'],
-        // ▼▼▼ 여기에 Paperozi 폰트를 추가합니다 ▼▼▼
-        paperozi: ['Paperozi', 'sans-serif'],
-      },
     },
   },
   plugins: [
@@ -324,9 +370,8 @@ FILE: tsconfig.json
   ]
 }
 
-
 ============================================================
-FILE: app\globals.css
+FILE: app/globals.css
 ============================================================
 /* app/globals.css */
 
@@ -526,30 +571,848 @@ FILE: app\globals.css
     font-weight: 900;
     font-display: swap;
 }
-/* ▲▲▲ 여기까지 수정 ▲▲▲ */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-800 font-freesentation font-medium;
+  }
+  /* strong 태그나 font-bold 클래스에 weight 900을 적용 */
+  strong, b, .font-bold {
+    @apply font-black;
+  }
+}
+
 .spoiler {
-  color: #6d6d6d;
-  filter: blur(5px);
+  background-color: #333;
+  color: transparent;
+  border-radius: 4px;
+  padding: 0 4px;
   cursor: pointer;
-  transition: all 0.3s ease-in-out;
-  user-select: none; 
+  transition: all 0.2s ease-in-out;
+  user-select: none;
 }
 
 .spoiler-revealed {
+  background-color: transparent;
   color: inherit;
-  filter: blur(0);
   cursor: default;
   user-select: auto;
 }
 
 ============================================================
-FILE: app\[locale]\not-found.tsx
+FILE: app/api/auth/signup/route.ts
+============================================================
+import { NextResponse } from 'next/server';
+import { db } from '@vercel/postgres';
+import bcrypt from 'bcryptjs';
+
+export async function POST(request: Request) {
+  try {
+    const { name, email, password } = await request.json();
+
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: '모든 필드를 입력해주세요.' }, { status: 400 });
+    }
+
+    // 이메일 중복 확인
+    const existingUser = await db.sql`SELECT * FROM users WHERE email = ${email}`;
+    if (existingUser.rows.length > 0) {
+      return NextResponse.json({ error: '이미 사용 중인 이메일입니다.' }, { status: 409 });
+    }
+
+    // 비밀번호 해싱
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 사용자 생성
+    await db.sql`
+      INSERT INTO users (name, email, password)
+      VALUES (${name}, ${email}, ${hashedPassword})
+    `;
+
+    return NextResponse.json({ success: true, message: '회원가입이 완료되었습니다.' });
+
+  } catch (error) {
+    console.error('Signup API Error:', error);
+    return NextResponse.json({ error: '회원가입 중 서버 에러가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/auth/[...nextauth]/route.ts
+============================================================
+// app/api/auth/[...nextauth]/route.ts (수정 후)
+
+import NextAuth from 'next-auth';
+// 1. 새로운 경로에서 authOptions를 import 합니다.
+import { authOptions } from '@/lib/authOptions';
+
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };
+
+============================================================
+FILE: app/api/notifications/route.ts
+============================================================
+// app/api/notifications/route.ts (새 파일)
+
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: '인증되지 않은 사용자입니다.' }, { status: 401 });
+  }
+
+  const userId = parseInt(session.user.id, 10);
+
+  try {
+    // 알림 목록 조회 (최신순)
+    const notificationsResult = await db.sql`
+      SELECT 
+        n.id,
+        n.type,
+        n.is_read,
+        n.created_at,
+        u.id AS actor_id,
+        u.name AS actor_name
+      FROM notifications n
+      JOIN users u ON n.actor_id = u.id
+      WHERE n.recipient_id = ${userId}
+      ORDER BY n.created_at DESC
+      LIMIT 20;
+    `;
+
+    // 읽지 않은 알림 개수 조회
+    const unreadCountResult = await db.sql`
+      SELECT COUNT(*) FROM notifications
+      WHERE recipient_id = ${userId} AND is_read = FALSE;
+    `;
+
+    return NextResponse.json({
+      notifications: notificationsResult.rows,
+      unreadCount: parseInt(unreadCountResult.rows[0].count, 10),
+    });
+  } catch (error) {
+    console.error('Failed to fetch notifications:', error);
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/notifications/mark-as-read/route.ts
+============================================================
+// app/api/notifications/mark-as-read/route.ts (새 파일)
+
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+
+export async function POST() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: '인증되지 않은 사용자입니다.' }, { status: 401 });
+  }
+
+  const userId = parseInt(session.user.id, 10);
+
+  try {
+    await db.sql`
+      UPDATE notifications
+      SET is_read = TRUE
+      WHERE recipient_id = ${userId} AND is_read = FALSE;
+    `;
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Failed to mark notifications as read:', error);
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/og/route.tsx
+============================================================
+// app/api/og/route.tsx (최종 수정본)
+import { ImageResponse } from 'next/og';
+import { NextRequest } from 'next/server';
+
+export const runtime = 'edge';
+
+function isColorDark(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const luminance = (r * 299 + g * 587 + b * 114) / 1000;
+  return luminance < 128;
+}
+
+async function getFontData(req: NextRequest, fontFamily: string) {
+  const baseUrl = new URL(req.url).origin;
+
+switch (fontFamily) {
+    case 'Freesentation':
+      const freesentation = await fetch(`${baseUrl}/Freesentation-9Black.ttf`).then((res) => res.arrayBuffer());
+      return { name: 'Freesentation', data: freesentation, weight: 900 as const };
+      
+    case 'BookkMyungjo':
+      const bookkMyungjo = await fetch(`${baseUrl}/BookkMyungjo_Bold.ttf`).then((res) => res.arrayBuffer());
+      return { name: 'BookkMyungjo', data: bookkMyungjo, weight: 700 as const };
+
+    case 'Paperozi':
+       const paperozi = await fetch(`${baseUrl}/Paperlogy-9Black.ttf`).then((res) => res.arrayBuffer());
+       return { name: 'Paperozi', data: paperozi, weight: 700 as const };
+
+    case 'Pretendard':
+    default:
+      const pretendard = await fetch(`${baseUrl}/PretendardJP-Black.otf`).then((res) => res.arrayBuffer());
+      return { name: 'Pretendard', data: pretendard, weight: 700 as const };
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+
+    const title = searchParams.get('title') || '제목을 입력해주세요';
+    const imageUrl = searchParams.get('imageUrl');
+    const tagsStr = searchParams.get('tags');
+    const isBlurred = searchParams.get('isBlurred') === 'true';
+    const isSpoiler = searchParams.get('isSpoiler') === 'true';
+    const isNsfw = searchParams.get('isNsfw') === 'true';
+    const artist = searchParams.get('artist');
+    const bgColor = searchParams.get('bgColor') || '#28234D';
+    const textColor = searchParams.get('textColor') || '#FFFFFF';
+    const ogFont = searchParams.get('ogFont') || 'Pretendard';
+
+    const tags = tagsStr ? tagsStr.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+    const fontData = await getFontData(req, ogFont);
+    const previewText = artist || (isSpoiler ? '내용이 가려졌습니다.' : '');
+    const isBgDark = isColorDark(bgColor);
+    const tagBgColor = isBgDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)';
+
+    return new ImageResponse(
+      (
+        <div 
+          style={{
+            fontFamily: `"${fontData.name}"`,
+            backgroundColor: bgColor,
+            color: textColor,
+          }}
+          tw="flex w-full h-full p-12"
+        >
+          {/* 이미지 영역 (왼쪽) */}
+          <div tw="w-1/2 h-full flex items-center justify-center pr-8">
+              {imageUrl && (
+                  <div tw="relative w-full h-full rounded-2xl overflow-hidden flex">
+                      <img src={imageUrl} alt="" tw="w-full h-full object-cover" style={{ filter: isBlurred || isNsfw ? 'blur(24px)' : 'none' }} />
+                      {isNsfw && (
+                        // ▼▼▼ [수정] text-white 클래스를 추가하여 글자색을 흰색으로 고정합니다. ▼▼▼
+                        <div tw="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 font-black text-8xl tracking-widest text-white">
+                          NSFW
+                        </div>
+                        // ▲▲▲ 여기까지 수정 ▲▲▲
+                      )}
+                  </div>
+              )}
+          </div>
+
+          {/* 텍스트 영역 (오른쪽) */}
+          <div tw="w-1/2 h-full flex flex-col justify-between" style={{ fontWeight: fontData.weight }}>
+              <div tw="flex justify-end text-4xl font-black tracking-wider opacity-80">
+                PREVIEW
+              </div>
+              
+              {/* 중앙 콘텐츠 */}
+              <div tw="flex flex-col">
+                  {tags.length > 0 && (
+                      <div tw="flex flex-wrap gap-2 mb-4">
+                          {tags.slice(0, 3).map((tag, i) => (
+                              <span key={i} tw="text-lg px-3 py-1 rounded-full" style={{ backgroundColor: tagBgColor }}>{tag}</span>
+                          ))}
+                      </div>
+                  )}
+                  <h1 tw="text-6xl font-black break-words" style={{ lineHeight: 1.2 }}>{title}</h1>
+                  {previewText && <p tw="text-2xl opacity-70 mt-4 line-clamp-2">{previewText}</p>}
+              </div>
+
+              <div tw="flex justify-end">
+                <div tw="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: textColor }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill={bgColor}>
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                </div>
+              </div>
+          </div>
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 630,
+        fonts: [{ name: fontData.name, data: fontData.data, weight: fontData.weight, style: 'normal' }],
+      }
+    );
+  } catch (e: any) {
+    console.error(`OG Image generation failed: ${e.message}`);
+    return new Response('Failed to generate OG image', { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/posts/route.ts
+============================================================
+// app/api/posts/route.ts (덮어쓰기)
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+import { nanoid } from 'nanoid';
+import bcrypt from 'bcryptjs';
+
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.id) {
+    return NextResponse.json({ error: '인증되지 않은 사용자입니다.' }, { status: 401 });
+  }
+  const userId = (session.user as any).id;
+
+  try {
+    const { 
+      title, tags, content, thumbnailUrl,
+      isThumbnailBlurred, isContentSpoiler, isNsfw,
+      selectedFont, password, dominantColor, textColor, visibility,
+      letterSpacing, lineHeight, ogFont
+    } = await request.json();
+
+    if (!title || !content || !thumbnailUrl) {
+      return NextResponse.json({ error: '제목, 내용, 대표 이미지는 필수입니다.' }, { status: 400 });
+    }
+
+    const id = nanoid(21);
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+
+    await db.sql`
+      INSERT INTO posts (
+        id, user_id, title, tags, content, thumbnail_url, 
+        is_thumbnail_blurred, is_content_spoiler, is_nsfw, 
+        font_family, password, dominant_color, text_color, visibility,
+        letter_spacing, line_height, og_font
+      ) VALUES (
+        ${id}, ${userId}, ${title}, ${tags}, ${content}, ${thumbnailUrl}, 
+        ${isThumbnailBlurred}, ${isContentSpoiler}, ${isNsfw}, 
+        ${selectedFont}, ${hashedPassword}, 
+        ${dominantColor}, ${textColor}, ${visibility},
+        ${letterSpacing || 'normal'}, ${lineHeight || '1.75'}, ${ogFont || 'Pretendard'}
+      );
+    `;
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${process.env.VERCEL_URL}`;
+    return NextResponse.json({ url: `${baseUrl}/view/${id}` });
+
+  } catch (error) {
+    console.error('Post creation failed:', error);
+    return NextResponse.json({ error: '게시물 생성 중 서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/posts/[id]/route.ts
+============================================================
+// app/api/posts/[id]/route.ts (덮어쓰기)
+import { NextResponse } from 'next/server';
+import { db } from '@vercel/postgres';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import bcrypt from 'bcryptjs';
+
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const result = await db.sql`
+      SELECT 
+        p.*, 
+        u.name as author_name
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.id = ${params.id}
+      LIMIT 1;
+    `;
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: '게시물을 찾을 수 없습니다.' }, { status: 404 });
+    }
+    return NextResponse.json(result.rows[0]);
+  } catch (error) {
+    console.error('Failed to fetch post:', error);
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.id) {
+    return NextResponse.json({ error: '인증되지 않은 사용자입니다.' }, { status: 401 });
+  }
+  const userId = (session.user as any).id;
+
+  try {
+    const postResult = await db.sql`SELECT * FROM posts WHERE id = ${params.id}`;
+    if (postResult.rowCount === 0) {
+      return NextResponse.json({ error: '게시물을 찾을 수 없습니다.' }, { status: 404 });
+    }
+    const post = postResult.rows[0];
+    if (post.user_id.toString() !== userId) {
+      return NextResponse.json({ error: '수정 권한이 없습니다.' }, { status: 403 });
+    }
+
+    const {
+      title, tags, content, thumbnailUrl,
+      isThumbnailBlurred, isContentSpoiler, isNsfw,
+      selectedFont, password, dominantColor, textColor, visibility,
+      letterSpacing, lineHeight, ogFont
+    } = await request.json();
+
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : post.password;
+
+    await db.sql`
+      UPDATE posts SET
+        title = ${title},
+        tags = ${tags},
+        content = ${content},
+        thumbnail_url = ${thumbnailUrl},
+        is_thumbnail_blurred = ${isThumbnailBlurred},
+        is_content_spoiler = ${isContentSpoiler},
+        is_nsfw = ${isNsfw},
+        font_family = ${selectedFont},
+        password = ${hashedPassword},
+        dominant_color = ${dominantColor},
+        text_color = ${textColor},
+        visibility = ${visibility},
+        letter_spacing = ${letterSpacing || 'normal'},
+        line_height = ${lineHeight || '1.75'},
+        og_font = ${ogFont || 'Pretendard'}
+      WHERE id = ${params.id} AND user_id = ${userId};
+    `;
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Post update failed:', error);
+    return NextResponse.json({ error: '게시물 수정 중 서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.id) {
+    return NextResponse.json({ error: '인증되지 않은 사용자입니다.' }, { status: 401 });
+  }
+  const userId = (session.user as any).id;
+
+  try {
+    const result = await db.sql`
+      DELETE FROM posts 
+      WHERE id = ${params.id} AND user_id = ${userId};
+    `;
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: '게시물이 없거나 삭제 권한이 없습니다.' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Post deletion failed:', error);
+    return NextResponse.json({ error: '게시물 삭제 중 서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/profile/update-image/route.ts
+============================================================
+// app/api/profile/update-image/route.ts (새 파일)
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: '인증되지 않았습니다.' }, { status: 401 });
+  }
+
+  const userId = parseInt(session.user.id, 10);
+  const { imageUrl }: { imageUrl: string } = await request.json();
+
+  if (!imageUrl) {
+    return NextResponse.json({ error: '이미지 URL이 필요합니다.' }, { status: 400 });
+  }
+
+  try {
+    await db.sql`UPDATE users SET image = ${imageUrl} WHERE id = ${userId};`;
+    return NextResponse.json({ success: true, imageUrl });
+  } catch (error) {
+    console.error('Failed to update profile image:', error);
+    return NextResponse.json({ error: '서버 오류' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/profile/[userId]/route.ts
+============================================================
+// app/api/profile/[userId]/route.ts (새 파일)
+import { NextResponse } from 'next/server';
+import { db } from '@vercel/postgres';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+
+export async function GET(
+  req: Request,
+  { params }: { params: { userId: string } }
+) {
+  const profileId = parseInt(params.userId, 10);
+  if (isNaN(profileId)) {
+    return NextResponse.json({ error: '잘못된 ID' }, { status: 400 });
+  }
+
+  const session = await getServerSession(authOptions);
+  const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+
+  try {
+    const userResult = await db.sql`SELECT id, name, email, image FROM users WHERE id = ${profileId} LIMIT 1;`;
+    if (userResult.rowCount === 0) {
+      return NextResponse.json({ error: '사용자를 찾을 수 없음' }, { status: 404 });
+    }
+    
+    const postsResult = await db.sql`
+      SELECT id, title, thumbnail_url, is_nsfw, is_thumbnail_blurred 
+      FROM posts 
+      WHERE user_id = ${profileId} AND visibility = 'public'
+      ORDER BY created_at DESC;
+    `;
+
+    const followerCountResult = await db.sql`SELECT COUNT(*) FROM follows WHERE following_id = ${profileId};`;
+    const followingCountResult = await db.sql`SELECT COUNT(*) FROM follows WHERE follower_id = ${profileId};`;
+
+    let isFollowing = false;
+    if (viewerId) {
+      const followCheck = await db.sql`SELECT 1 FROM follows WHERE follower_id = ${viewerId} AND following_id = ${profileId} LIMIT 1;`;
+      isFollowing = (followCheck?.rowCount ?? 0) > 0;
+    }
+
+    const profileData = {
+      user: userResult.rows[0],
+      posts: postsResult.rows,
+      followerCount: parseInt(followerCountResult.rows[0].count, 10),
+      followingCount: parseInt(followingCountResult.rows[0].count, 10),
+      isFollowing,
+    };
+
+    return NextResponse.json(profileData);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: '서버 오류' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/upload/route.ts
+============================================================
+import { NextResponse } from 'next/server';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { nanoid } from 'nanoid';
+
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ENDPOINT!,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+  },
+});
+
+function getPublicUrl(filename: string): string {
+  const publicUrlBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!;
+  return `${publicUrlBase.replace(/\/$/, '')}/${filename}`;
+}
+
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file') as File | null;
+
+    if (!file) {
+      return NextResponse.json({ error: '파일이 없습니다.' }, { status: 400 });
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const uniqueId = nanoid(10); // 짧은 고유 ID
+    const key = `${uniqueId}-${file.name}`;
+
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Key: key,
+      Body: buffer,
+      ContentType: file.type,
+    });
+    
+    await s3Client.send(command);
+
+    const publicUrl = getPublicUrl(key);
+
+    // 이제 DB에 저장하지 않고, 업로드된 파일의 URL과 파일명만 반환합니다.
+    return NextResponse.json({ success: true, url: publicUrl, filename: file.name });
+
+  } catch (error) {
+    console.error('Upload API Error:', error);
+    return NextResponse.json({ error: '파일 업로드 중 서버에서 에러가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/users/[userId]/follow/route.ts
+============================================================
+// app/api/users/[userId]/follow/route.ts (수정 후)
+
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+
+export async function POST(
+  request: Request,
+  // ▼▼▼ [수정] params 타입을 { userId: string } 으로 변경합니다. ▼▼▼
+  { params }: { params: { userId: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: '인증되지 않은 사용자입니다.' }, { status: 401 });
+  }
+
+  const followerId = parseInt(session.user.id, 10);
+  // ▼▼▼ [수정] params.targetUserId -> params.userId 로 변경합니다. ▼▼▼
+  const followingId = parseInt(params.userId, 10);
+
+  if (isNaN(followerId) || isNaN(followingId)) {
+    return NextResponse.json({ error: '잘못된 사용자 ID입니다.' }, { status: 400 });
+  }
+  if (followerId === followingId) {
+    return NextResponse.json({ error: '자기 자신을 팔로우할 수 없습니다.' }, { status: 400 });
+  }
+
+  const { action }: { action: 'follow' | 'unfollow' } = await request.json();
+
+  try {
+    if (action === 'follow') {
+      await db.sql`
+        INSERT INTO follows (follower_id, following_id)
+        VALUES (${followerId}, ${followingId})
+        ON CONFLICT (follower_id, following_id) DO NOTHING;
+      `;
+      
+      await db.sql`
+        INSERT INTO notifications (recipient_id, actor_id, type)
+        VALUES (${followingId}, ${followerId}, 'NEW_FOLLOWER');
+      `;
+
+    } else if (action === 'unfollow') {
+      await db.sql`
+        DELETE FROM follows
+        WHERE follower_id = ${followerId} AND following_id = ${followingId};
+      `;
+    } else {
+      return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Follow action failed:', error);
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/users/[userId]/followers/route.ts
+============================================================
+// app/api/users/[userId]/followers/route.ts (새 파일)
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+
+export async function GET(
+  req: Request,
+  { params }: { params: { userId: string } }
+) {
+  const session = await getServerSession(authOptions);
+  const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const targetUserId = parseInt(params.userId, 10);
+
+  if (isNaN(targetUserId)) {
+    return NextResponse.json({ error: '잘못된 사용자 ID입니다.' }, { status: 400 });
+  }
+
+  try {
+    const result = await db.sql`
+      SELECT
+        u.id,
+        u.name,
+        u.image,
+        CASE WHEN f_viewer.follower_id IS NOT NULL THEN TRUE ELSE FALSE END AS "is_followed_by_viewer"
+      FROM follows f_target
+      JOIN users u ON f_target.follower_id = u.id
+      LEFT JOIN follows f_viewer ON f_viewer.following_id = u.id AND f_viewer.follower_id = ${viewerId}
+      WHERE f_target.following_id = ${targetUserId}
+    `;
+
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error('Failed to fetch followers:', error);
+    return NextResponse.json({ error: '서버 오류' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/users/[userId]/following/route.ts
+============================================================
+// app/api/users/[userId]/following/route.ts (새 파일)
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+
+export async function GET(
+  req: Request,
+  { params }: { params: { userId: string } }
+) {
+  const session = await getServerSession(authOptions);
+  const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const targetUserId = parseInt(params.userId, 10);
+
+  if (isNaN(targetUserId)) {
+    return NextResponse.json({ error: '잘못된 사용자 ID입니다.' }, { status: 400 });
+  }
+
+  try {
+    const result = await db.sql`
+      SELECT
+        u.id,
+        u.name,
+        u.image,
+        CASE WHEN f_viewer.follower_id IS NOT NULL THEN TRUE ELSE FALSE END AS "is_followed_by_viewer"
+      FROM follows f_target
+      JOIN users u ON f_target.following_id = u.id
+      LEFT JOIN follows f_viewer ON f_viewer.following_id = u.id AND f_viewer.follower_id = ${viewerId}
+      WHERE f_target.follower_id = ${targetUserId}
+    `;
+
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error('Failed to fetch following:', error);
+    return NextResponse.json({ error: '서버 오류' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/verify-password/route.ts
+============================================================
+import { NextResponse } from 'next/server';
+import { db } from '@vercel/postgres';
+// ▼▼▼ import 경로만 변경 ▼▼▼
+import bcrypt from 'bcryptjs';
+
+export async function POST(request: Request) {
+  try {
+    const { id, password } = await request.json();
+
+    if (!id || !password) {
+      return NextResponse.json({ error: 'ID와 비밀번호를 모두 입력해야 합니다.' }, { status: 400 });
+    }
+
+    const { rows } = await db.sql`SELECT password FROM posts WHERE id = ${id} LIMIT 1;`;
+
+    if (rows.length === 0) {
+      return NextResponse.json({ error: '게시물을 찾을 수 없습니다.' }, { status: 404 });
+    }
+
+    const hashedPassword = rows[0].password;
+    if (!hashedPassword) {
+        return NextResponse.json({ error: '이 게시물에는 비밀번호가 설정되어 있지 않습니다.' }, { status: 400 });
+    }
+
+    const isMatch = await bcrypt.compare(password, hashedPassword);
+
+    if (isMatch) {
+      return NextResponse.json({ success: true });
+    } else {
+      return NextResponse.json({ success: false, error: '비밀번호가 일치하지 않습니다.' }, { status: 401 });
+    }
+
+  } catch (error) {
+    console.error('Verify Password API Error:', error);
+    return NextResponse.json({ error: '비밀번호 확인 중 서버 에러가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/[locale]/layout.tsx
+============================================================
+// app/[locale]/layout.tsx (수정 후 전체 코드)
+
+import type { Metadata } from 'next';
+import AuthProvider from '@/components/SessionProvider';
+import Header from '@/components/Header';
+import { getDictionary } from '@/lib/dictionary';
+import '../globals.css';
+
+export const metadata: Metadata = {
+  title: 'Private Media Sharer',
+  description: 'Share your own story privately.',
+};
+
+export default async function RootLayout({
+  children,
+  params: { locale },
+}: {
+  children: React.ReactNode;
+  params: { locale: string };
+}) {
+  const dictionary = await getDictionary(locale);
+
+  return (
+    <html lang={locale}>
+      <body className="font-pretendard">
+        <AuthProvider>
+          {/* ▼▼▼ 바로 이 부분을 수정합니다! ▼▼▼ */}
+          <Header
+            tHeader={dictionary.Header}
+            tLang={dictionary.LanguageSwitcher}
+          />
+          {/* ▲▲▲ 여기까지 수정 ▲▲▲ */}
+          <main>{children}</main>
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
+
+============================================================
+FILE: app/[locale]/not-found.tsx
 ============================================================
 // app/[locale]/not-found.tsx (수정 후)
 'use client'; // 클라이언트 컴포넌트 유지
@@ -579,51 +1442,44 @@ export default function NotFoundPage() {
 }
 
 ============================================================
-FILE: app\[locale]\page.tsx
+FILE: app/[locale]/page.tsx
 ============================================================
-// app/[locale]/page.tsx (전체 코드)
-
+// app/[locale]/page.tsx (덮어쓰기)
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
 import Link from 'next/link';
-import { getDictionary } from '@/lib/dictionary'; // 1. 우리만의 함수를 import 합니다.
-import { LockKeyhole, PencilLine, Share2, ImageIcon, Eye, BookUser } from 'lucide-react';
+import { getDictionary } from '@/lib/dictionary';
+import { MoveRight } from 'lucide-react';
 
-// 2. 함수의 인자로 params를 받아 locale을 추출합니다.
 export default async function HomePage({ 
   params: { locale } 
 }: { 
   params: { locale: string } 
 }) {
   const session = await getServerSession(authOptions);
-  
-  // 3. getTranslations 대신 getDictionary를 사용합니다.
   const dictionary = await getDictionary(locale);
   const t = dictionary.HomePage;
   const tHeader = dictionary.Header;
+  
+  const baseButton = "px-6 py-2.5 text-base font-semibold rounded-lg shadow-sm transition-transform hover:scale-[1.02]";
+  const primaryButton = `bg-gray-800 text-white ${baseButton}`;
+  const secondaryButton = `bg-white text-gray-800 border border-gray-200 ${baseButton}`;
 
   if (session) {
     return (
-      <main className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-8 text-center bg-gray-50">
+      <main className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-8 text-center">
         <div className="max-w-2xl">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-800">
-            {/* 4. 변수 삽입 방식을 .replace()로 변경합니다. */}
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
             {t.loggedInTitle.replace('{name}', session.user?.name || 'User')}
           </h1>
           <p className="mt-4 text-lg text-gray-600">
             {t.loggedInSubtitle}
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <Link
-              href="/upload"
-              className="px-8 py-4 text-lg font-semibold text-white bg-gray-800 rounded-lg shadow-md hover:bg-gray-900 transition-colors"
-            >
+            <Link href="/upload" className={primaryButton}>
               {t.newPostButton}
             </Link>
-            <Link
-              href="/my-posts"
-              className="px-8 py-4 text-lg font-semibold text-gray-800 bg-white rounded-lg shadow-md hover:bg-gray-100 border border-gray-200 transition-colors"
-            >
+            <Link href="/my-posts" className={secondaryButton}>
               {t.myPostsButton}
             </Link>
           </div>
@@ -633,38 +1489,28 @@ export default async function HomePage({
   }
 
   return (
-    <main className="bg-white text-gray-800">
-      <section className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] text-center p-8 bg-gray-50">
+    <main className="bg-white">
+      <section className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] text-center p-8">
         <div className="max-w-3xl">
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight whitespace-pre-line">
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 whitespace-pre-line">
             {t.heroTitle}
           </h1>
-          <p className="mt-6 text-lg md:text-xl text-gray-600">
+          <p className="mt-6 text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
             {t.heroSubtitle}
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <Link
-              href="/signup"
-              className="px-8 py-4 text-lg font-semibold text-white bg-gray-800 rounded-lg shadow-md hover:bg-gray-900 transition-colors"
-            >
-              {t.startButton}
-            </Link>
-            <Link
-              href="/login"
-              className="px-8 py-4 text-lg font-semibold text-gray-800 bg-white rounded-lg shadow-md hover:bg-gray-100 border border-gray-200 transition-colors"
-            >
-              {tHeader.login}
+          <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
+            <Link href="/signup" className={`${primaryButton} flex items-center gap-2`}>
+              {t.startButton} <MoveRight size={20} />
             </Link>
           </div>
         </div>
       </section>
-      {/* ... 이하 나머지 기능 소개 섹션들은 그대로 유지하시면 됩니다 ... */}
     </main>
   );
 }
 
 ============================================================
-FILE: app\[locale]\admin\AdminDashboard.tsx
+FILE: app/[locale]/admin/AdminDashboard.tsx
 ============================================================
 // app/[locale]/admin/AdminDashboard.tsx
 'use client';
@@ -739,7 +1585,7 @@ export default function AdminDashboard() {
 }
 
 ============================================================
-FILE: app\[locale]\admin\page.tsx
+FILE: app/[locale]/admin/page.tsx
 ============================================================
 // app/[locale]/admin/page.tsx
 
@@ -767,10 +1613,39 @@ export default async function AdminPage() {
 }
 
 ============================================================
-FILE: app\[locale]\edit\[id]\page.tsx
+FILE: app/[locale]/admin/users/route.ts
 ============================================================
-// app/[locale]/edit/[id]/page.tsx
+// app/api/admin/users/route.ts
 
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+
+export async function GET(request: Request) {
+  const session = await getServerSession(authOptions);
+
+  // 1. 세션이 없거나, role이 'admin'이 아니면 거부
+  if (!session || session.user?.role !== 'admin') {
+    return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 });
+  }
+
+  try {
+    // 2. 관리자일 경우에만 DB에서 모든 사용자 정보 조회 (비밀번호 제외)
+    const result = await db.sql`
+      SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC
+    `;
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error('관리자 API 오류:', error);
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/[locale]/edit/[id]/page.tsx
+============================================================
+// app/[locale]/edit/[id]/page.tsx (덮어쓰기)
 'use client';
 
 import { useState, useEffect, FormEvent, useRef, ChangeEvent } from 'react';
@@ -779,14 +1654,10 @@ import OgPreview from '@/app/[locale]/upload/OgPreview';
 import ContentPreview from '@/app/[locale]/upload/ContentPreview';
 import { FastAverageColor } from 'fast-average-color';
 import type { Post } from '@/types';
+import EditorToolbar from '@/components/EditorToolbar';
 
 function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// Post 타입에 visibility 속성 추가 필요 (types/index.ts)
-interface EditablePost extends Post {
-  visibility?: string;
 }
 
 export default function EditPage() {
@@ -794,10 +1665,8 @@ export default function EditPage() {
   const params = useParams();
   const { id } = params;
 
-  const [post, setPost] = useState<EditablePost | null>(null);
+  const [post, setPost] = useState<Post | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
-
-  // Form states
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [content, setContent] = useState('');
@@ -809,23 +1678,29 @@ export default function EditPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [selectedFont, setSelectedFont] = useState('font-pretendard');
+  const [selectedFont, setSelectedFont] = useState('font-freesentation');
+  const [ogFont, setOgFont] = useState('Pretendard');
   const [password, setPassword] = useState('');
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const [dominantColor, setDominantColor] = useState<string | null>(null);
   const [textColor, setTextColor] = useState<string | null>(null);
   const [visibility, setVisibility] = useState('public');
-  
-  const fontClasses: { [key: string]: string } = {
-    'font-paperozi': '페이퍼로지',
-    'font-pretendard': '프리텐다드',
-    'font-bookkmyungjo': '부크크 명조',
-    'font-freesentation': '프리젠테이션',
+  // ▼▼▼ [수정] letterSpacing 상태 초기값을 '0'으로 변경합니다. ▼▼▼
+  const [letterSpacing, setLetterSpacing] = useState('0');
+  const [lineHeight, setLineHeight] = useState('1.75');
+
+  const fontClasses: { [key: string]: { name: string, value: string } } = {
+    'font-freesentation': { name: '프리젠테이션', value: 'Freesentation'},
+    'font-pretendard': { name: '프리텐다드', value: 'Pretendard' },
+    'font-bookkmyungjo': { name: '부크크 명조', value: 'BookkMyungjo' },
+    'font-paperozi': { name: '페이퍼로지', value: 'Paperozi' },
   };
+
+  const inputStyle = "block w-full text-sm px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-400";
+  const fileInputStyle = "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200";
 
   useEffect(() => {
     if (!id) return;
-
     const fetchPost = async () => {
       try {
         const res = await fetch(`/api/posts/${id}`);
@@ -833,8 +1708,7 @@ export default function EditPage() {
           const errorData = await res.json();
           throw new Error(errorData.error || '게시물을 불러오는데 실패했습니다.');
         }
-        const data: EditablePost = await res.json();
-        
+        const data: Post = await res.json();
         setPost(data);
         setTitle(data.title);
         setTags(data.tags || '');
@@ -843,10 +1717,21 @@ export default function EditPage() {
         setIsBlurred(data.is_thumbnail_blurred);
         setIsSpoiler(data.is_content_spoiler);
         setIsNsfw(data.is_nsfw);
-        setSelectedFont(data.font_family || 'font-pretendard');
+        setSelectedFont(data.font_family || 'font-freesentation');
         setDominantColor(data.dominant_color);
         setTextColor(data.text_color);
         setVisibility(data.visibility || 'public');
+        
+        // ▼▼▼ [수정] DB 값을 슬라이더 값으로 변환합니다. ▼▼▼
+        const dbLetterSpacing = data.letter_spacing;
+        if (dbLetterSpacing === 'normal' || !dbLetterSpacing) {
+          setLetterSpacing('0');
+        } else {
+          setLetterSpacing(dbLetterSpacing.replace('em', ''));
+        }
+        
+        setLineHeight(data.line_height || '1.75');
+        setOgFont(data.og_font || 'Pretendard');
       } catch (err: any) {
         setError(err.message);
         if (err.message.includes('권한')) {
@@ -856,7 +1741,6 @@ export default function EditPage() {
         setIsLoadingData(false);
       }
     };
-
     fetchPost();
   }, [id, router]);
 
@@ -911,32 +1795,25 @@ export default function EditPage() {
       setError('제목, 내용, 대표 이미지를 모두 설정해주세요.');
       return;
     }
-    if (visibility === 'password' && !post?.password && !password) {
-      setError('비밀번호 공개를 선택한 경우, 새 비밀번호를 입력해야 합니다.');
-      return;
-    }
-
     setIsSubmitting(true);
     setError('');
-
     try {
+      // ▼▼▼ [추가] API 전송 전에 letterSpacing 값을 변환합니다. ▼▼▼
+      const finalLetterSpacing = letterSpacing === '0' ? 'normal' : `${letterSpacing}em`;
+
       const response = await fetch(`/api/posts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title, tags, content, thumbnailUrl,
-          isThumbnailBlurred: isBlurred,
-          isContentSpoiler: isSpoiler,
-          isNsfw, selectedFont, password,
-          dominantColor: dominantColor || '#28234D',
-          textColor: textColor || '#FFFFFF',
-          visibility,
+          isThumbnailBlurred: isBlurred, isContentSpoiler: isSpoiler, isNsfw,
+          selectedFont, password, dominantColor: dominantColor || '#28234D',
+          // ▼▼▼ [수정] letterSpacing을 finalLetterSpacing으로 변경합니다. ▼▼▼
+          textColor: textColor || '#FFFFFF', visibility, letterSpacing: finalLetterSpacing, lineHeight, ogFont,
         }),
       });
-
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-
       alert('게시물이 성공적으로 수정되었습니다.');
       router.push('/my-posts');
     } catch (err) {
@@ -946,33 +1823,14 @@ export default function EditPage() {
     }
   };
   
-  const insertSpoilerText = () => {
-    const textarea = contentRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = content.substring(start, end);
-    const spoilerText = `블러[${selectedText || '가릴 내용'}]`;
-    const newContent = content.substring(0, start) + spoilerText + content.substring(end);
-    setContent(newContent);
-    textarea.focus();
-    setTimeout(() => {
-      const newCursorPosition = start + spoilerText.length - (selectedText ? 1 : 6);
-      textarea.setSelectionRange(newCursorPosition, newCursorPosition);
-    }, 0);
-  };
-  
   const handleImageResize = (src: string, newWidth: number) => {
     setContent(currentContent => {
       const escapedSrc = escapeRegExp(src);
       const htmlImgRegex = new RegExp(`<img[^>]*src="(${escapedSrc})"[^>]*>`, 'i');
       if (htmlImgRegex.test(currentContent)) {
         return currentContent.replace(htmlImgRegex, (match) => {
-          if (/width="/i.test(match)) {
-            return match.replace(/width="\d+"/i, `width="${newWidth}"`);
-          } else {
-            return match.replace(/<img/i, `<img width="${newWidth}"`);
-          }
+          if (/width="/i.test(match)) { return match.replace(/width="\d+"/i, `width="${newWidth}"`); }
+          else { return match.replace(/<img/i, `<img width="${newWidth}"`); }
         });
       }
       const markdownImgRegex = new RegExp(`!\\[([^\\]]*)\\]\\((${escapedSrc})\\)`, 'g');
@@ -991,56 +1849,106 @@ export default function EditPage() {
   }
 
   return (
-    <main className={`min-h-screen bg-gray-100 p-4 sm:p-8 ${selectedFont}`}>
+    <main className={`min-h-screen p-4 sm:p-8`}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-8 rounded-lg shadow-md space-y-6 h-fit">
-          <h1 className="text-3xl font-bold text-center text-gray-900">게시물 수정</h1>
+        <div className="bg-white p-6 sm:p-8 rounded-xl border border-gray-200 space-y-6 h-fit">
+          <h1 className="text-2xl font-black text-center text-gray-900">게시물 수정</h1>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div><label htmlFor="title" className="block text-sm font-medium text-gray-700">제목</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required /></div>
-            <div><label htmlFor="tags" className="block text-sm font-medium text-gray-700">태그</label><input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="태그를 쉼표(,)로 구분하여 입력" /></div>
-            <div><label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700">대표 이미지</label><input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isThumbnailUploading && <p className="text-sm text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}</div>
+            <div><label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">제목</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={inputStyle} required /></div>
+            <div><label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">태그</label><input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className={inputStyle} placeholder="쉼표(,)로 구분" /></div>
+            <div><label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700 mb-1">대표 이미지</label><input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className={fileInputStyle} />{isThumbnailUploading && <p className="text-xs text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}</div>
+            <div><label htmlFor="file" className="block text-sm font-medium text-gray-700 mb-1">본문 이미지 추가</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className={fileInputStyle} />{isUploading && <p className="text-xs text-gray-500 mt-2">업로드 중...</p>}</div>
             
-            {/* ▼▼▼ [복원] 본문 이미지 첨부란 ▼▼▼ */}
-            <div><label htmlFor="file" className="block text-sm font-medium text-gray-700">본문 이미지 추가</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}</div>
-            
-            <div><div className="flex justify-between items-center"><label htmlFor="content" className="block text-sm font-medium text-gray-700">본문 (Markdown 지원)</label><button type="button" onClick={insertSpoilerText} className="px-2 py-1 text-xs font-semibold text-white bg-gray-700 rounded-md hover:bg-gray-800">스포일러 추가</button></div><textarea ref={contentRef} id="content" rows={10} value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required /></div>
-            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">본문</label>
+              <EditorToolbar textareaRef={contentRef} setContent={setContent} />
+              <textarea ref={contentRef} id="content" rows={12} value={content} onChange={(e) => setContent(e.target.value)} className={`${inputStyle} rounded-t-none`} required />
+            </div>
+
+            <div className="space-y-4 rounded-md border border-gray-200 p-4">
+              <h3 className="text-sm font-black text-gray-900">본문 스타일</h3>
+              {/* ▼▼▼ [수정] 자간 조절 UI 추가 및 레이아웃 변경 ▼▼▼ */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="sm:col-span-2">
+                  <label htmlFor="font" className="block text-sm font-medium text-gray-700 mb-1">본문 폰트</label>
+                  <select id="font" value={selectedFont} onChange={(e) => setSelectedFont(e.target.value)} className={`${inputStyle} text-sm`}>
+                    {Object.entries(fontClasses).map(([className, {name}]) => (
+                      <option key={className} value={className}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="letterSpacing" className="block text-sm font-medium text-gray-700 mb-1">자간: {letterSpacing}em</label>
+                  <input id="letterSpacing" type="range" min="-0.05" max="0.1" step="0.025" value={letterSpacing} onChange={e => setLetterSpacing(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"/>
+                </div>
+                <div>
+                  <label htmlFor="lineHeight" className="block text-sm font-medium text-gray-700 mb-1">행간: {lineHeight}</label>
+                  <input id="lineHeight" type="range" min="1.25" max="2.5" step="0.25" value={lineHeight} onChange={e => setLineHeight(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"/>
+                </div>
+              </div>
+              {/* ▲▲▲ 여기까지 수정 ▲▲▲ */}
+            </div>
+
             <div className="space-y-6 rounded-md border border-gray-200 p-4">
+              <h3 className="text-sm font-black text-gray-900">공개 및 SNS 옵션</h3>
               <div>
-                <h3 className="text-sm font-medium text-gray-900">공개 범위</h3>
-                <div className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                <label htmlFor="ogFont" className="block text-sm font-medium text-gray-700 mb-1">SNS 미리보기 폰트</label>
+                <select id="ogFont" value={ogFont} onChange={(e) => setOgFont(e.target.value)} className={`${inputStyle} text-sm`}>
+                  {Object.entries(fontClasses).map(([_, {name, value}]) => (
+                    <option key={value} value={value}>{name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <h4 className="block text-sm font-medium text-gray-700 mb-2">공개 범위</h4>
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
                   <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="public" checked={visibility === 'public'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">전체 공개</span></label>
                   <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="password" checked={visibility === 'password'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">비밀번호</span></label>
                   <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="followers_only" checked={visibility === 'followers_only'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">팔로워만</span></label>
                   <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="mutuals_only" checked={visibility === 'mutuals_only'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">맞팔로워만</span></label>
                 </div>
               </div>
-
               {(visibility === 'password') && (
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호 (변경 시에만 입력)</label>
-                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" placeholder="새 비밀번호 또는 빈 칸으로 두기" />
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">비밀번호 (변경 시에만 입력)</label>
+                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputStyle} placeholder="새 비밀번호 또는 빈 칸으로 두기" />
                 </div>
               )}
-
-              {/* ▼▼▼ [복원] SNS 미리보기 옵션 ▼▼▼ */}
               <div>
-                <h3 className="text-sm font-medium text-gray-900">SNS 미리보기 옵션</h3>
-                <div className="mt-2 space-y-2">
+                <h4 className="block text-sm font-medium text-gray-700 mt-4 mb-2">SNS 미리보기 옵션</h4>
+                <div className="space-y-2">
                   <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="blur-toggle" type="checkbox" checked={isBlurred} onChange={(e) => setIsBlurred(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="blur-toggle" className="font-medium text-gray-700">대표 이미지 흐리게</label></div></div>
                   <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="spoiler-toggle" type="checkbox" checked={isSpoiler} onChange={(e) => setIsSpoiler(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="spoiler-toggle" className="font-medium text-gray-700">본문 내용 스포일러</label></div></div>
                   <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="nsfw-toggle" type="checkbox" checked={isNsfw} onChange={(e) => setIsNsfw(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="nsfw-toggle" className="font-medium text-gray-700">NSFW (민감한 콘텐츠)</label></div></div>
                 </div>
               </div>
             </div>
-
-            <button type="submit" disabled={isSubmitting || isUploading || isThumbnailUploading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 disabled:bg-gray-400">{isSubmitting ? '수정 중...' : '수정 완료'}</button>
+            <button type="submit" disabled={isSubmitting || isUploading || isThumbnailUploading} className="w-full px-4 py-2.5 text-base font-semibold text-white bg-gray-800 rounded-md hover:bg-gray-900 disabled:bg-gray-400">{isSubmitting ? '수정 중...' : '수정 완료'}</button>
           </form>
           {error && <p className="mt-4 text-sm text-center text-red-600">{error}</p>}
         </div>
         <div className="space-y-8 sticky top-8 h-fit">
-          <OgPreview title={title} tags={tags} content={content} imageUrl={thumbnailUrl} isBlurred={isBlurred} isSpoiler={isSpoiler} isNsfw={isNsfw} />
-          <ContentPreview content={content} fontClass={selectedFont} onImageResize={handleImageResize} />
+          <OgPreview 
+            title={title} 
+            tags={tags} 
+            content={content} 
+            imageUrl={thumbnailUrl} 
+            isBlurred={isBlurred} 
+            isSpoiler={isSpoiler} 
+            isNsfw={isNsfw} 
+            ogFont={ogFont}
+            dominantColor={dominantColor}
+            textColor={textColor}
+          />
+          {/* ▼▼▼ 바로 이 부분에 letterSpacing과 lineHeight props를 추가합니다. ▼▼▼ */}
+          <ContentPreview 
+            content={content} 
+            fontClass={selectedFont} 
+            onImageResize={handleImageResize}
+            letterSpacing={letterSpacing}
+            lineHeight={lineHeight}
+          />
+          {/* ▲▲▲ 여기까지 수정 ▲▲▲ */}
         </div>
       </div>
     </main>
@@ -1048,9 +1956,9 @@ export default function EditPage() {
 }
 
 ============================================================
-FILE: app\[locale]\login\page.tsx
+FILE: app/[locale]/login/page.tsx
 ============================================================
-
+// app/[locale]/login/page.tsx (덮어쓰기)
 'use client';
 
 import { useState, FormEvent, Suspense } from 'react';
@@ -1088,26 +1996,29 @@ function LoginForm() {
     }
   };
 
+  const inputStyle = "mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-sm";
+  const buttonStyle = "w-full px-4 py-2.5 text-base font-semibold text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400";
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold text-center text-gray-900">로그인</h1>
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-sm p-8 space-y-6 bg-white rounded-xl border border-gray-200">
+        <h1 className="text-2xl font-bold text-center text-gray-900">로그인</h1>
         {signupSuccess && (
-          <p className="text-sm text-center text-green-600 bg-green-100 p-3 rounded-md">
-            회원가입이 성공적으로 완료되었습니다. 로그인해주세요.
+          <p className="text-sm text-center text-green-700 bg-green-50 p-3 rounded-md border border-green-200">
+            회원가입이 완료되었습니다. 로그인해주세요.
           </p>
         )}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">이메일</label>
-            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputStyle} />
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호</label>
-            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={inputStyle} />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={isLoading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">
+          <button type="submit" disabled={isLoading} className={buttonStyle}>
             {isLoading ? '로그인 중...' : '로그인'}
           </button>
         </form>
@@ -1130,18 +2041,17 @@ export default function LoginPage() {
   )
 }
 
-
 ============================================================
-FILE: app\[locale]\my-posts\page.tsx
+FILE: app/[locale]/my-posts/page.tsx
 ============================================================
+// app/[locale]/my-posts/page.tsx (덮어쓰기)
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
 import { redirect } from 'next/navigation';
 import { db } from '@vercel/postgres';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Edit } from 'lucide-react'; // 아이콘 추가
-
+import { Edit, PlusCircle } from 'lucide-react';
 import type { Post } from '@/types';
 
 async function getMyPosts(userId: string): Promise<Post[]> {
@@ -1164,182 +2074,265 @@ export default async function MyPostsPage() {
   const posts = await getMyPosts(userId);
 
   return (
-    <main className="min-h-screen bg-gray-100 p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">내 포스트 보관함</h1>
-        
-        {posts.length === 0 ? (
-          <div className="text-center bg-white p-8 rounded-lg shadow-md">
-            <p className="text-gray-600">아직 작성한 포스트가 없습니다.</p>
-            <Link href="/upload" className="mt-4 inline-block px-6 py-2 text-white bg-gray-800 rounded-md hover:bg-gray-900">
-              첫 포스트 작성하기
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.map((post) => (
-              <div key={post.id} className="group bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
-                <Link href={`/view/${post.id}`} className="block">
-                  <div className="relative aspect-square">
-                    <Image
-                      src={post.thumbnail_url}
-                      alt={post.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className={`object-cover ${post.is_nsfw || post.is_thumbnail_blurred ? 'blur-md' : ''}`}
-                    />
-                    {post.is_nsfw && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-lg">NSFW</div>}
-                  </div>
-                </Link>
-                <div className="p-4 flex-grow flex flex-col justify-between">
-                  <Link href={`/view/${post.id}`} className="block">
-                    <h2 className="font-bold text-lg text-gray-800 truncate group-hover:underline">{post.title}</h2>
-                    <p className="text-sm text-gray-500 mt-1">{new Date(post.created_at).toLocaleDateString()}</p>
+    <main className="max-w-6xl mx-auto p-4 sm:p-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">내 포스트 보관함</h1>
+        <Link href="/upload" className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 rounded-lg shadow-sm hover:bg-gray-900">
+          <PlusCircle size={16} />
+          새 포스트
+        </Link>
+      </div>
+      
+      {posts.length === 0 ? (
+        <div className="text-center bg-white p-12 rounded-xl border border-gray-200">
+          <p className="text-gray-600">아직 작성한 포스트가 없습니다.</p>
+          <Link href="/upload" className="mt-4 inline-block px-6 py-2 text-white bg-gray-800 rounded-md hover:bg-gray-900 text-sm font-semibold">
+            첫 포스트 작성하기
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {posts.map((post) => (
+            <div key={post.id} className="group bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+              <Link href={`/view/${post.id}`} className="block">
+                <div className="relative aspect-square">
+                  <Image
+                    src={post.thumbnail_url}
+                    alt={post.title}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className={`object-cover transition-transform group-hover:scale-105 ${post.is_nsfw || post.is_thumbnail_blurred ? 'blur-md' : ''}`}
+                  />
+                  {post.is_nsfw && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-sm tracking-widest">NSFW</div>}
+                </div>
+              </Link>
+              <div className="p-4 flex-grow flex flex-col justify-between">
+                <div>
+                  <h2 className="font-semibold text-gray-800 truncate group-hover:underline">{post.title}</h2>
+                  <p className="text-xs text-gray-500 mt-1">{new Date(post.created_at).toLocaleDateString()}</p>
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <Link href={`/edit/${post.id}`} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors">
+                    <Edit size={16} />
                   </Link>
-                  <div className="mt-4 flex justify-end">
-                    <Link href={`/edit/${post.id}`} className="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors">
-                      <Edit size={18} />
-                    </Link>
-                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }
 
 ============================================================
-FILE: app\[locale]\profile\[userId]\page.tsx
+FILE: app/[locale]/profile/page.tsx
 ============================================================
-// app/profile/[userId]/page.tsx (전체 코드)
+// app/[locale]/profile/page.tsx (새 파일)
 
-import { db } from '@vercel/postgres';
-import { notFound } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
+import { redirect } from 'next/navigation';
+
+// 이 페이지는 사용자를 자신의 공개 프로필 페이지로 리디렉션하는 역할만 합니다.
+export default async function MyProfilePage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    // 로그인하지 않은 사용자는 로그인 페이지로 보냅니다.
+    // 로그인 후 다시 이 페이지로 돌아오도록 callbackUrl을 설정합니다.
+    redirect('/login?callbackUrl=/profile');
+  }
+
+  // 로그인한 사용자는 자신의 공개 프로필 페이지로 리디렉트합니다.
+  redirect(`/profile/${session.user.id}`);
+}
+
+============================================================
+FILE: app/[locale]/profile/[userId]/page.tsx
+============================================================
+// app/[locale]/profile/[userId]/page.tsx (덮어쓰기)
+'use client'; 
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter, notFound } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import FollowButton from '@/components/FollowButton';
+import FollowListModal, { FollowUser } from '@/components/FollowListModal';
+import ProfileImageUploader from '@/components/ProfileImageUploader';
 import type { Post } from '@/types';
+import { Edit } from 'lucide-react';
 
 interface UserProfile {
   id: number;
   name: string;
   email: string;
+  image: string | null;
+}
+interface ProfileData {
+  user: UserProfile;
+  posts: Post[];
+  followerCount: number;
+  followingCount: number;
+  isFollowing: boolean;
 }
 
-async function getProfileData(userId: number) {
-  const userResult = await db.sql<UserProfile>`SELECT id, name, email FROM users WHERE id = ${userId} LIMIT 1;`;
-  if (userResult.rowCount === 0) return null;
-  
-  const postsResult = await db.sql<Post>`
-    SELECT id, title, thumbnail_url, is_nsfw, is_thumbnail_blurred 
-    FROM posts 
-    WHERE user_id = ${userId} AND visibility = 'public'
-    ORDER BY created_at DESC;
-  `;
+export default function ProfilePage() {
+  const params = useParams();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const profileId = parseInt(params.userId as string, 10);
 
-  const followerCountResult = await db.sql`SELECT COUNT(*) FROM follows WHERE following_id = ${userId};`;
-  const followingCountResult = await db.sql`SELECT COUNT(*) FROM follows WHERE follower_id = ${userId};`;
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalUsers, setModalUsers] = useState<FollowUser[]>([]);
+  const [isModalLoading, setIsModalLoading] = useState(false);
 
-  return {
-    user: userResult.rows[0],
-    posts: postsResult.rows,
-    followerCount: parseInt(followerCountResult.rows[0].count, 10),
-    followingCount: parseInt(followingCountResult.rows[0].count, 10),
+  useEffect(() => {
+    if (isNaN(profileId)) {
+      notFound();
+      return;
+    }
+    
+    const fetchProfileData = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`/api/profile/${profileId}`);
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        setProfileData(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProfileData();
+  }, [profileId]);
+
+  const handleOpenModal = async (type: 'followers' | 'following') => {
+    setModalTitle(type === 'followers' ? 'Followers' : 'Following');
+    setIsModalOpen(true);
+    setIsModalLoading(true);
+    try {
+      const res = await fetch(`/api/users/${profileId}/${type}`);
+      const data = await res.json();
+      setModalUsers(data);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setIsModalLoading(false);
+    }
   };
-}
 
-export default async function ProfilePage({ params }: { params: { userId: string } }) {
-  const profileId = parseInt(params.userId, 10);
-  if (isNaN(profileId)) notFound();
-
-  const profileData = await getProfileData(profileId);
-  if (!profileData) notFound();
-
-  const session = await getServerSession(authOptions);
-  const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
-  
-  let isFollowing = false;
-  if (viewerId) {
-    const followCheck = await db.sql`
-      SELECT 1 FROM follows WHERE follower_id = ${viewerId} AND following_id = ${profileId} LIMIT 1;
-    `;
-    isFollowing = (followCheck?.rowCount ?? 0) > 0;
+  if (isLoading) {
+    return <div className="min-h-screen pt-10 text-center">Loading...</div>;
   }
-  
-  const { user, posts, followerCount, followingCount } = profileData;
+
+  if (!profileData) {
+    return notFound();
+  }
+
+  const { user, posts, followerCount, followingCount, isFollowing } = profileData;
+  const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const isOwnProfile = viewerId === user.id;
 
   return (
-    <main className="min-h-screen bg-gray-100">
-      <div className="max-w-4xl mx-auto p-4 sm:p-8">
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
-            <div className="w-24 h-24 bg-gray-300 rounded-full flex-shrink-0">
-              {/* Future: User avatar */}
-            </div>
-            <div className="flex-grow text-center sm:text-left">
-              <h1 className="text-3xl font-bold text-gray-900">{user.name}</h1>
-              <p className="text-gray-500">{user.email}</p>
-              <div className="flex justify-center sm:justify-start space-x-4 mt-2">
-                <p><span className="font-semibold">{followerCount}</span> Followers</p>
-                <p><span className="font-semibold">{followingCount}</span> Following</p>
+    <>
+      <main className="max-w-4xl mx-auto p-4 sm:p-8">
+        <div className="bg-white p-6 sm:p-8 rounded-xl border border-gray-200 mb-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            
+            {isOwnProfile ? (
+              <ProfileImageUploader 
+                currentImageUrl={user.image}
+                onUploadComplete={() => router.refresh()}
+              />
+            ) : (
+              <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                <Image
+                  src={user.image || '/default-avatar.png'}
+                  alt={user.name}
+                  fill
+                  className="object-cover"
+                  sizes="96px"
+                />
+              </div>
+            )}
+
+            <div className="flex-grow text-center sm:text-left w-full">
+              <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+              <p className="text-sm text-gray-500 mt-1">{user.email}</p>
+              <div className="flex justify-center sm:justify-start space-x-4 mt-3 text-sm">
+                <button onClick={() => handleOpenModal('followers')} className="text-gray-600 hover:text-gray-900">
+                  <span className="font-semibold text-gray-800">{followerCount}</span> Followers
+                </button>
+                <button onClick={() => handleOpenModal('following')} className="text-gray-600 hover:text-gray-900">
+                  <span className="font-semibold text-gray-800">{followingCount}</span> Following
+                </button>
               </div>
             </div>
             <div className="flex-shrink-0">
-              <FollowButton targetUserId={user.id} isInitiallyFollowing={isFollowing} />
+              {!isOwnProfile && viewerId && (
+                <FollowButton targetUserId={user.id} isInitiallyFollowing={isFollowing} />
+              )}
             </div>
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Public Posts</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-6 px-2">Public Posts</h2>
         {posts.length === 0 ? (
-          <div className="text-center bg-white p-8 rounded-lg shadow-md">
-            <p className="text-gray-600">This user has no public posts yet.</p>
+          <div className="text-center bg-white p-8 rounded-xl border border-gray-200">
+            <p className="text-sm text-gray-600">This user has no public posts yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {posts.map((post) => (
-              <div key={post.id} className="group bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
-                <Link href={`/view/${post.id}`} className="block">
-                  <div className="relative aspect-square">
-                    <Image
-                      src={post.thumbnail_url}
-                      alt={post.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className={`object-cover ${post.is_nsfw || post.is_thumbnail_blurred ? 'blur-md' : ''}`}
-                    />
-                    {post.is_nsfw && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-lg">NSFW</div>}
-                  </div>
-                </Link>
-                <div className="p-4 flex-grow">
-                  <Link href={`/view/${post.id}`} className="block">
-                    <h3 className="font-bold text-lg text-gray-800 truncate group-hover:underline">{post.title}</h3>
-                  </Link>
+              <Link key={post.id} href={`/view/${post.id}`} className="group block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="relative aspect-square">
+                  <Image
+                    src={post.thumbnail_url}
+                    alt={post.title}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className={`object-cover transition-transform group-hover:scale-105 ${post.is_nsfw || post.is_thumbnail_blurred ? 'blur-md' : ''}`}
+                  />
+                  {post.is_nsfw && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-sm tracking-widest">NSFW</div>}
                 </div>
-              </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-base text-gray-800 truncate">{post.title}</h3>
+                </div>
+              </Link>
             ))}
           </div>
         )}
-      </div>
-    </main>
+      </main>
+      <FollowListModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={modalTitle}
+        users={modalUsers}
+        isLoading={isModalLoading}
+      />
+    </>
   );
 }
 
 ============================================================
-FILE: app\[locale]\signup\page.tsx
+FILE: app/[locale]/signup/page.tsx
 ============================================================
-'use client'; // <-- 이 부분이 매우 중요합니다! 파일의 가장 첫 줄에 있어야 합니다.
+// app/[locale]/signup/page.tsx (덮어쓰기)
+'use client';
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// 👇 이 함수 전체가 "React Component"이며, export default로 내보내져야 합니다.
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -1359,22 +2352,10 @@ export default function SignupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
-
-      // 서버 응답이 JSON이 아닐 수도 있는 경우를 대비해 먼저 텍스트로 읽습니다.
-      const responseText = await res.text();
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (jsonError) {
-        // JSON 파싱 실패 시, 서버가 보낸 텍스트를 에러로 간주합니다.
-        throw new Error(responseText || '서버로부터 잘못된 응답을 받았습니다.');
-      }
-
-
+      const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || '회원가입에 실패했습니다.');
       }
-
       router.push('/login?signup=success');
     } catch (err: any) {
       setError(err.message);
@@ -1383,25 +2364,28 @@ export default function SignupPage() {
     }
   };
 
+  const inputStyle = "mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-sm";
+  const buttonStyle = "w-full px-4 py-2.5 text-base font-semibold text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400";
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold text-center text-gray-900">회원가입</h1>
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-sm p-8 space-y-6 bg-white rounded-xl border border-gray-200">
+        <h1 className="text-2xl font-bold text-center text-gray-900">회원가입</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700">이름</label>
-            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required className={inputStyle} />
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">이메일</label>
-            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputStyle} />
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호</label>
-            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" />
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={inputStyle} />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={isLoading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">
+          <button type="submit" disabled={isLoading} className={buttonStyle}>
             {isLoading ? '가입 중...' : '가입하기'}
           </button>
         </form>
@@ -1417,9 +2401,9 @@ export default function SignupPage() {
 }
 
 ============================================================
-FILE: app\[locale]\upload\ContentPreview.tsx
+FILE: app/[locale]/upload/ContentPreview.tsx
 ============================================================
-// app/[locale]/upload/ContentPreview.tsx (최종 완성)
+// app/[locale]/upload/ContentPreview.tsx (덮어쓰기)
 
 'use client';
 
@@ -1435,9 +2419,18 @@ interface ContentPreviewProps {
   content: string;
   fontClass: string;
   onImageResize: (src: string, newWidth: number) => void;
+  // ▼▼▼ [추가] 자간, 행간 props 타입 추가 ▼▼▼
+  letterSpacing?: string;
+  lineHeight?: string;
 }
 
-export default function ContentPreview({ content, fontClass, onImageResize }: ContentPreviewProps) {
+export default function ContentPreview({ 
+  content, 
+  fontClass, 
+  onImageResize,
+  letterSpacing, // ▼▼▼ props 받기
+  lineHeight,    // ▼▼▼ props 받기
+}: ContentPreviewProps) {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -1458,17 +2451,26 @@ export default function ContentPreview({ content, fontClass, onImageResize }: Co
 
   const processedContent = processContentForSpoilers(content);
 
+  // ▼▼▼ [추가] 자간, 행간을 위한 인라인 스타일 객체 생성 ▼▼▼
+  const previewStyle = {
+    letterSpacing: letterSpacing === '0' || !letterSpacing ? 'normal' : `${letterSpacing}em`,
+    lineHeight: lineHeight || '1.75',
+  };
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2 text-gray-800">본문 미리보기</h3>
+      {/* ▼▼▼ [추가] 이미지 리사이즈 안내 문구 ▼▼▼ */}
+      <p className="text-xs text-gray-500 mb-2 -mt-1">
+        본문 내 이미지는 우측 하단 핸들을 클릭하여 크기를 조절할 수 있습니다.
+      </p>
       <div 
         className={`prose lg:prose-lg w-full max-w-none bg-white p-6 sm:p-8 rounded-lg shadow-lg border min-h-[200px] ${fontClass}`}
         onClick={handleSpoilerClick}
+        style={previewStyle} // ▼▼▼ [수정] style 속성 적용
       >
-        {/* 서버와 초기 렌더링 시에는 이 부분을 렌더링합니다. */}
         {!isClient && <p className="text-gray-400">미리보기를 불러오는 중...</p>}
         
-        {/* 클라이언트에서 마운트된 후에만 ReactMarkdown을 렌더링합니다. */}
         {isClient && content ? (
           <ReactMarkdown 
             remarkPlugins={[remarkGfm, remarkBreaks] as Pluggable[]}
@@ -1499,15 +2501,13 @@ export default function ContentPreview({ content, fontClass, onImageResize }: Co
 }
 
 ============================================================
-FILE: app\[locale]\upload\OgPreview.tsx
+FILE: app/[locale]/upload/OgPreview.tsx
 ============================================================
+// app/[locale]/upload/OgPreview.tsx (덮어쓰기)
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
-// ▼▼▼ Heart, EyeOff 아이콘을 import에서 제거합니다 ▼▼▼
-import { Play } from 'lucide-react';
-import { FastAverageColor } from 'fast-average-color';
 
 interface OgPreviewProps {
   title: string;
@@ -1517,122 +2517,119 @@ interface OgPreviewProps {
   isBlurred: boolean;
   isSpoiler: boolean;
   isNsfw: boolean;
+  ogFont: string;
+  // ▼▼▼ [추가] 부모 컴포넌트에서 계산된 색상 값을 직접 받습니다. ▼▼▼
+  dominantColor: string | null;
+  textColor: string | null;
 }
 
-export default function OgPreview({ title, tags, content, imageUrl, isBlurred, isSpoiler, isNsfw }: OgPreviewProps) {
-  const tagList = tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+// 헬퍼 함수: 색상이 어두운지 확인
+function isColorDark(hexColor: string): boolean {
+  if (!hexColor) return true;
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  // 밝기 계산 (Luminance)
+  const luminance = (r * 299 + g * 587 + b * 114) / 1000;
+  return luminance < 128;
+}
 
-  const [backgroundColor, setBackgroundColor] = useState('#28234D');
-  const [textColor, setTextColor] = useState('#FFFFFF');
-  const [tagBackgroundColor, setTagBackgroundColor] = useState('rgba(255, 255, 255, 0.15)');
-  const [playButtonColor, setPlayButtonColor] = useState('#28234D');
+// OG 폰트 이름을 Tailwind CSS 클래스로 매핑
+const fontClassMap: { [key: string]: string } = {
+  'Freesentation': 'font-freesentation font-black',
+  'Pretendard': 'font-pretendard font-black',
+  'BookkMyungjo': 'font-bookkmyungjo font-bold',
+  'Paperozi': 'font-paperozi font-bold',
+};
 
-  useEffect(() => {
-    if (!imageUrl) {
-      setBackgroundColor('#28234D');
-      setTextColor('#FFFFFF');
-      setTagBackgroundColor('rgba(255, 255, 255, 0.15)');
-      setPlayButtonColor('#28234D');
-      return;
-    }
+export default function OgPreview({ 
+  title, tags, content, imageUrl, isBlurred, isSpoiler, isNsfw, ogFont,
+  dominantColor, textColor 
+}: OgPreviewProps) {
+  
+  const bgColor = dominantColor || '#28234D';
+  const fgColor = textColor || '#FFFFFF';
 
-    const fac = new FastAverageColor();
-    fac.getColorAsync(imageUrl)
-      .then(color => {
-        setBackgroundColor(color.hex);
-        if (color.isDark) {
-          setTextColor('#FFFFFF');
-          setTagBackgroundColor('rgba(255, 255, 255, 0.15)');
-        } else {
-          setTextColor('#000000');
-          setTagBackgroundColor('rgba(0, 0, 0, 0.1)');
-        }
-        setPlayButtonColor(color.hex); // Play 버튼 배경색은 이미지의 대표색과 동일하게 설정
-      })
-      .catch(e => {
-        console.error("Error extracting color from image:", e);
-      });
-  }, [imageUrl]);
+  const previewText = useMemo(() => {
+    if (isSpoiler) return '내용이 가려졌습니다.';
+    return content
+      .replace(/!\[.*?\]\(.*?\)/g, '') // 마크다운 이미지 제거
+      .replace(/<img[^>]*>/gi, '')   // HTML 이미지 제거
+      .replace(/<[^>]+>/g, '')       // 기타 HTML 태그 제거
+      .replace(/\s+/g, ' ')          // 공백 정규화
+      .trim()
+      .substring(0, 100);
+  }, [content, isSpoiler]);
 
-  const previewText = content
-    .replace(/!\[.*?\]\(.*?\)/g, '')
-    .replace(/<img[^>]*>/gi, '')
-    .replace(/블러\[.*?\]/g, '')
-    .replace(/\n/g, ' ')
-    .trim();
+  const tagList = useMemo(() => tags.split(',').map(tag => tag.trim()).filter(Boolean), [tags]);
+  const isBgDark = isColorDark(bgColor);
+  const tagBgColor = isBgDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)';
 
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2 text-gray-800">SNS 미리보기</h3>
-      <div 
-        className="aspect-[1.91/1] w-full rounded-lg p-6 flex overflow-hidden shadow-lg transition-colors duration-500 font-pretendard"
-        style={{ backgroundColor: backgroundColor, color: textColor }}
-      >
-        {/* 이미지 영역 */}
-        <div className="w-1/2 h-full relative flex-shrink-0 rounded-md overflow-hidden">
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt="썸네일 미리보기"
-              fill
-              className={`object-cover transition-all duration-300 ${isBlurred || isNsfw ? 'blur-xl' : ''}`}
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-700 rounded-md flex items-center justify-center">
-              <span className="text-gray-400">대표 이미지</span>
-            </div>
-          )}
-          {isNsfw && (
-            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
-              {/* ▼▼▼ 1. NSFW 아이콘을 굵은 텍스트로 교체 ▼▼▼ */}
-              <div className="font-black text-white text-5xl sm:text-6xl tracking-widest">
-                NSFW
+      <div className="aspect-[1.91/1] w-full rounded-lg overflow-hidden shadow-lg border border-gray-200">
+        {!imageUrl ? (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <span className="text-sm text-gray-500">대표 이미지를 업로드하면 미리보기가 생성됩니다.</span>
+          </div>
+        ) : (
+          <div
+            style={{ backgroundColor: bgColor, color: fgColor }}
+            className={`flex w-full h-full p-8 text-lg ${fontClassMap[ogFont] || 'font-pretendard'}`}
+          >
+            {/* 이미지 영역 (왼쪽) */}
+            <div className="w-1/2 h-full flex items-center justify-center pr-4">
+              <div className="relative w-full h-full rounded-lg overflow-hidden flex">
+                <Image src={imageUrl} alt="preview" fill className={`object-cover ${isBlurred || isNsfw ? 'blur-xl' : ''}`} />
+                {isNsfw && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 font-black text-5xl tracking-widest text-white">
+                    NSFW
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* 텍스트 영역 */}
-        <div className="w-1/2 h-full pl-6 flex flex-col justify-between">
-          <div className="flex justify-end opacity-80">
-            {/* ▼▼▼ 2. 상단 하트 아이콘을 굵은 텍스트로 교체 ▼▼▼ */}
-            <div className="font-black text-2xl sm:text-3xl tracking-wider" style={{ color: textColor }}>
-              PREVIEW
+            {/* 텍스트 영역 (오른쪽) */}
+            <div className="w-1/2 h-full flex flex-col justify-between pl-4">
+              <div className="flex justify-end text-2xl font-black tracking-wider opacity-80">
+                PREVIEW
+              </div>
+              
+              <div className="flex flex-col">
+                {tagList.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {tagList.slice(0, 3).map((tag, i) => (
+                      <span key={i} style={{ backgroundColor: tagBgColor }} className="text-xs px-2 py-0.5 rounded-full">{tag}</span>
+                    ))}
+                  </div>
+                )}
+                <h1 className="text-4xl font-black break-words" style={{ lineHeight: 1.2 }}>
+                  {title || '제목을 입력해주세요'}
+                </h1>
+                {previewText && <p className="text-base opacity-70 mt-2 line-clamp-2">{previewText}</p>}
+              </div>
+
+              <div className="flex justify-end">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: fgColor }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill={bgColor}>
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex flex-col">
-            <div className="flex flex-wrap gap-2 mb-3">
-              {tagList.length > 0 ? tagList.map((tag, index) => (
-                <span key={index} className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: tagBackgroundColor }}>
-                  {tag}
-                </span>
-              )) : <div className="h-5"></div>}
-            </div>
-            <h1 className="text-2xl font-bold break-words line-clamp-2">
-              {title || '제목이 여기에 표시됩니다'}
-            </h1>
-            <p className="text-sm opacity-70 mt-2 line-clamp-2">
-              {isSpoiler 
-                ? '내용이 가려졌습니다. 링크를 클릭해 확인하세요.' 
-                : (previewText || '내용 미리보기...')}
-            </p>
-          </div>
-          <div className="flex justify-end">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: textColor }}>
-              <Play size={24} style={{ color: playButtonColor, fill: playButtonColor }} />
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
 ============================================================
-FILE: app\[locale]\upload\page.tsx
+FILE: app/[locale]/upload/page.tsx
 ============================================================
-// app/[locale]/upload/page.tsx
-
+// app/[locale]/upload/page.tsx (덮어쓰기)
 'use client';
 
 import { useState, ChangeEvent, FormEvent, useRef } from 'react';
@@ -1640,6 +2637,7 @@ import { useRouter } from 'next/navigation';
 import OgPreview from './OgPreview';
 import ContentPreview from './ContentPreview';
 import { FastAverageColor } from 'fast-average-color';
+import EditorToolbar from '@/components/EditorToolbar';
 
 function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1647,8 +2645,6 @@ function escapeRegExp(string: string) {
 
 export default function UploadPage() {
   const router = useRouter();
-
-  // Form states
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [content, setContent] = useState('');
@@ -1661,38 +2657,39 @@ export default function UploadPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
   const [error, setError] = useState('');
-  const [selectedFont, setSelectedFont] = useState('font-pretendard');
+  const [selectedFont, setSelectedFont] = useState('font-freesentation');
+  const [ogFont, setOgFont] = useState('Pretendard');
   const [password, setPassword] = useState('');
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const [dominantColor, setDominantColor] = useState<string | null>(null);
   const [textColor, setTextColor] = useState<string | null>(null);
-
-  // ▼▼▼ [수정] 공개 범위 상태 추가 ▼▼▼
   const [visibility, setVisibility] = useState('public');
+  // ▼▼▼ [수정] letterSpacing 상태 초기값을 '0'으로 변경합니다. ▼▼▼
+  const [letterSpacing, setLetterSpacing] = useState('0');
+  const [lineHeight, setLineHeight] = useState('1.75');
 
-  const fontClasses: { [key: string]: string } = {
-    'font-paperozi': '페이퍼로지',
-    'font-pretendard': '프리텐다드',
-    'font-bookkmyungjo': '부크크 명조',
-    'font-freesentation': '프리젠테이션',
+  const fontClasses: { [key: string]: { name: string, value: string } } = {
+    'font-freesentation': { name: '프리젠테이션', value: 'Freesentation'},
+    'font-pretendard': { name: '프리텐다드', value: 'Pretendard' },
+    'font-bookkmyungjo': { name: '부크크 명조', value: 'BookkMyungjo' },
+    'font-paperozi': { name: '페이퍼로지', value: 'Paperozi' },
   };
+  
+  const inputStyle = "block w-full text-sm px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-400";
+  const fileInputStyle = "block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200";
 
   const handleThumbnailUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     setIsThumbnailUploading(true);
     setError('');
     const formData = new FormData();
     formData.append('file', file);
-
     try {
       const response = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      
       setThumbnailUrl(data.url);
-
       const fac = new FastAverageColor();
       const colorResult = await fac.getColorAsync(data.url);
       if (!colorResult.error) {
@@ -1736,55 +2733,37 @@ export default function UploadPage() {
       setError('비밀번호 공개를 선택한 경우, 비밀번호를 입력해야 합니다.');
       return;
     }
-
     setIsSubmitting(true);
     setError('');
     setGeneratedLink('');
-
     try {
+      // ▼▼▼ [추가] API 전송 전에 letterSpacing 값을 변환합니다. ▼▼▼
+      const finalLetterSpacing = letterSpacing === '0' ? 'normal' : `${letterSpacing}em`;
+
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           title, tags, content, thumbnailUrl,
-          isThumbnailBlurred: isBlurred,
-          isContentSpoiler: isSpoiler,
-          isNsfw, selectedFont, password,
-          dominantColor: dominantColor || '#28234D',
-          textColor: textColor || '#FFFFFF',
-          visibility, // ▼▼▼ [수정] 공개 범위 값 추가 ▼▼▼
+          isThumbnailBlurred: isBlurred, isContentSpoiler: isSpoiler, isNsfw, 
+          selectedFont, password, dominantColor: dominantColor || '#28234D', 
+          // ▼▼▼ [수정] letterSpacing을 finalLetterSpacing으로 변경합니다. ▼▼▼
+          textColor: textColor || '#FFFFFF', visibility, letterSpacing: finalLetterSpacing, lineHeight, ogFont,
         }),
       });
-
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-
       setGeneratedLink(data.url);
-      // 폼 초기화
       setTitle(''); setTags(''); setContent(''); setThumbnailUrl('');
       setIsBlurred(false); setIsSpoiler(false); setIsNsfw(false); setPassword('');
       setDominantColor(null); setTextColor(null); setVisibility('public');
+      // ▼▼▼ [수정] 폼 리셋 시 letterSpacing 값을 '0'으로 설정합니다. ▼▼▼
+      setLetterSpacing('0'); setLineHeight('1.75'); setOgFont('Pretendard');
     } catch (err) {
       setError(err instanceof Error ? err.message : '게시물 생성 실패');
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const insertSpoilerText = () => {
-    const textarea = contentRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = content.substring(start, end);
-    const spoilerText = `블러[${selectedText || '가릴 내용'}]`;
-    const newContent = content.substring(0, start) + spoilerText + content.substring(end);
-    setContent(newContent);
-    textarea.focus();
-    setTimeout(() => {
-      const newCursorPosition = start + spoilerText.length - (selectedText ? 1 : 6);
-      textarea.setSelectionRange(newCursorPosition, newCursorPosition);
-    }, 0);
   };
   
   const handleImageResize = (src: string, newWidth: number) => {
@@ -1793,11 +2772,8 @@ export default function UploadPage() {
       const htmlImgRegex = new RegExp(`<img[^>]*src="(${escapedSrc})"[^>]*>`, 'i');
       if (htmlImgRegex.test(currentContent)) {
         return currentContent.replace(htmlImgRegex, (match) => {
-          if (/width="/i.test(match)) {
-            return match.replace(/width="\d+"/i, `width="${newWidth}"`);
-          } else {
-            return match.replace(/<img/i, `<img width="${newWidth}"`);
-          }
+          if (/width="/i.test(match)) { return match.replace(/width="\d+"/i, `width="${newWidth}"`); }
+          else { return match.replace(/<img/i, `<img width="${newWidth}"`); }
         });
       }
       const markdownImgRegex = new RegExp(`!\\[([^\\]]*)\\]\\((${escapedSrc})\\)`, 'g');
@@ -1809,40 +2785,74 @@ export default function UploadPage() {
   };
 
   return (
-    <main className={`min-h-screen bg-gray-100 p-4 sm:p-8 ${selectedFont}`}>
+    <main className={`min-h-screen p-4 sm:p-8`}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-8 rounded-lg shadow-md space-y-6 h-fit">
-          <h1 className="text-3xl font-bold text-center text-gray-900">새 게시물 작성</h1>
+        <div className="bg-white p-6 sm:p-8 rounded-xl border border-gray-200 space-y-6 h-fit">
+          <h1 className="text-2xl font-black text-center text-gray-900">새 게시물 작성</h1>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 폰트 선택, 제목, 태그, 이미지 업로드 등 기존 UI ... */}
-            <div><label htmlFor="title" className="block text-sm font-medium text-gray-700">제목</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required /></div>
-            <div><label htmlFor="tags" className="block text-sm font-medium text-gray-700">태그</label><input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="태그를 쉼표(,)로 구분하여 입력" /></div>
-            <div><label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700">대표 이미지</label><input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" required />{isThumbnailUploading && <p className="text-sm text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}</div>
-            <div><label htmlFor="file" className="block text-sm font-medium text-gray-700">본문 이미지</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-800 hover:file:bg-gray-200" />{isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}</div>
-            <div><div className="flex justify-between items-center"><label htmlFor="content" className="block text-sm font-medium text-gray-700">본문 (Markdown 지원)</label><button type="button" onClick={insertSpoilerText} className="px-2 py-1 text-xs font-semibold text-white bg-gray-700 rounded-md hover:bg-gray-800">스포일러 추가</button></div><textarea ref={contentRef} id="content" rows={10} value={content} onChange={(e) => setContent(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" required /></div>
+            <div><label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">제목</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={inputStyle} required /></div>
+            <div><label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">태그</label><input id="tags" type="text" value={tags} onChange={(e) => setTags(e.target.value)} className={inputStyle} placeholder="쉼표(,)로 구분" /></div>
+            <div><label htmlFor="thumbnail-upload" className="block text-sm font-medium text-gray-700 mb-1">대표 이미지</label><input id="thumbnail-upload" type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={isThumbnailUploading} className={fileInputStyle} required />{isThumbnailUploading && <p className="text-xs text-gray-500 mt-2">대표 이미지 업로드 및 분석 중...</p>}</div>
+            <div><label htmlFor="file" className="block text-sm font-medium text-gray-700 mb-1">본문 이미지</label><input id="file" type="file" multiple onChange={handleFileChange} disabled={isUploading} className={fileInputStyle} />{isUploading && <p className="text-xs text-gray-500 mt-2">업로드 중...</p>}</div>
             
-            {/* ▼▼▼ [수정] 공개 범위 및 옵션 섹션 ▼▼▼ */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">본문</label>
+              <EditorToolbar textareaRef={contentRef} setContent={setContent} />
+              <textarea ref={contentRef} id="content" rows={12} value={content} onChange={(e) => setContent(e.target.value)} className={`${inputStyle} rounded-t-none`} required />
+            </div>
+
+            <div className="space-y-4 rounded-md border border-gray-200 p-4">
+              <h3 className="text-sm font-black text-gray-900">본문 스타일</h3>
+              {/* ▼▼▼ [수정] 자간 조절 UI 추가 및 레이아웃 변경 ▼▼▼ */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="sm:col-span-2">
+                  <label htmlFor="font" className="block text-sm font-medium text-gray-700 mb-1">본문 폰트</label>
+                  <select id="font" value={selectedFont} onChange={(e) => setSelectedFont(e.target.value)} className={`${inputStyle} text-sm`}>
+                    {Object.entries(fontClasses).map(([className, {name}]) => (
+                      <option key={className} value={className}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="letterSpacing" className="block text-sm font-medium text-gray-700 mb-1">자간: {letterSpacing}em</label>
+                  <input id="letterSpacing" type="range" min="-0.05" max="0.1" step="0.025" value={letterSpacing} onChange={e => setLetterSpacing(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"/>
+                </div>
+                <div>
+                  <label htmlFor="lineHeight" className="block text-sm font-medium text-gray-700 mb-1">행간: {lineHeight}</label>
+                  <input id="lineHeight" type="range" min="1.25" max="2.5" step="0.25" value={lineHeight} onChange={e => setLineHeight(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"/>
+                </div>
+              </div>
+              {/* ▲▲▲ 여기까지 수정 ▲▲▲ */}
+            </div>
+
             <div className="space-y-6 rounded-md border border-gray-200 p-4">
+              <h3 className="text-sm font-black text-gray-900">공개 및 SNS 옵션</h3>
               <div>
-                <h3 className="text-sm font-medium text-gray-900">공개 범위</h3>
-                <div className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                <label htmlFor="ogFont" className="block text-sm font-medium text-gray-700 mb-1">SNS 미리보기 폰트</label>
+                <select id="ogFont" value={ogFont} onChange={(e) => setOgFont(e.target.value)} className={`${inputStyle} text-sm`}>
+                  {Object.entries(fontClasses).map(([_, {name, value}]) => (
+                    <option key={value} value={value}>{name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <h4 className="block text-sm font-medium text-gray-700 mb-2">공개 범위</h4>
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
                   <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="public" checked={visibility === 'public'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">전체 공개</span></label>
                   <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="password" checked={visibility === 'password'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">비밀번호</span></label>
                   <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="followers_only" checked={visibility === 'followers_only'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">팔로워만</span></label>
                   <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="mutuals_only" checked={visibility === 'mutuals_only'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">맞팔로워만</span></label>
                 </div>
               </div>
-
               {visibility === 'password' && (
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">비밀번호</label>
-                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500" placeholder="게시물 보호용 비밀번호" required />
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
+                  <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputStyle} placeholder="게시물 보호용 비밀번호" required />
                 </div>
               )}
-
               <div>
-                <h3 className="text-sm font-medium text-gray-900">SNS 미리보기 옵션</h3>
-                <div className="mt-2 space-y-2">
+                <h4 className="block text-sm font-medium text-gray-700 mt-4 mb-2">SNS 미리보기 옵션</h4>
+                <div className="space-y-2">
                   <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="blur-toggle" type="checkbox" checked={isBlurred} onChange={(e) => setIsBlurred(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="blur-toggle" className="font-medium text-gray-700">대표 이미지 흐리게</label></div></div>
                   <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="spoiler-toggle" type="checkbox" checked={isSpoiler} onChange={(e) => setIsSpoiler(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="spoiler-toggle" className="font-medium text-gray-700">본문 내용 스포일러</label></div></div>
                   <div className="relative flex items-start"><div className="flex h-6 items-center"><input id="nsfw-toggle" type="checkbox" checked={isNsfw} onChange={(e) => setIsNsfw(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></div><div className="ml-3 text-sm leading-6"><label htmlFor="nsfw-toggle" className="font-medium text-gray-700">NSFW (민감한 콘텐츠)</label></div></div>
@@ -1850,14 +2860,33 @@ export default function UploadPage() {
               </div>
             </div>
             
-            <button type="submit" disabled={isSubmitting || isUploading || isThumbnailUploading} className="w-full px-4 py-2 text-lg font-medium text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400">{isSubmitting ? '생성 중...' : '공유 링크 생성'}</button>
+            <button type="submit" disabled={isSubmitting || isUploading || isThumbnailUploading} className="w-full px-4 py-2.5 text-base font-semibold text-white bg-gray-800 rounded-md hover:bg-gray-900 disabled:bg-gray-400">{isSubmitting ? '생성 중...' : '공유 링크 생성'}</button>
           </form>
           {error && <p className="mt-4 text-sm text-center text-red-600">{error}</p>}
           {generatedLink && (<div className="mt-6 p-4 bg-gray-100 border border-gray-200 rounded-md"><p className="text-sm font-medium text-gray-800">✅ 성공! 생성된 링크:</p><a href={generatedLink} target="_blank" rel="noopener noreferrer" className="block mt-1 text-sm text-gray-900 font-semibold break-all hover:underline">{generatedLink}</a></div>)}
         </div>
         <div className="space-y-8 sticky top-8 h-fit">
-          <OgPreview title={title} tags={tags} content={content} imageUrl={thumbnailUrl} isBlurred={isBlurred} isSpoiler={isSpoiler} isNsfw={isNsfw} />
-          <ContentPreview content={content} fontClass={selectedFont} onImageResize={handleImageResize} />
+          <OgPreview 
+            title={title} 
+            tags={tags} 
+            content={content} 
+            imageUrl={thumbnailUrl} 
+            isBlurred={isBlurred} 
+            isSpoiler={isSpoiler} 
+            isNsfw={isNsfw} 
+            ogFont={ogFont}
+            dominantColor={dominantColor}
+            textColor={textColor}
+          />
+          {/* ▼▼▼ 바로 이 부분에 letterSpacing과 lineHeight props를 추가합니다. ▼▼▼ */}
+          <ContentPreview 
+            content={content} 
+            fontClass={selectedFont} 
+            onImageResize={handleImageResize}
+            letterSpacing={letterSpacing}
+            lineHeight={lineHeight}
+          />
+          {/* ▲▲▲ 여기까지 수정 ▲▲▲ */}
         </div>
       </div>
     </main>
@@ -1865,7 +2894,7 @@ export default function UploadPage() {
 }
 
 ============================================================
-FILE: app\[locale]\upload\ResizableImage.tsx
+FILE: app/[locale]/upload/ResizableImage.tsx
 ============================================================
 // ▼▼▼ "use client" 지시어 추가 ▼▼▼
 'use client';
@@ -1959,7 +2988,7 @@ export default function ResizableImage({ src, alt, currentWidth, onResize }: Res
 }
 
 ============================================================
-FILE: app\[locale]\view\[id]\page.tsx
+FILE: app/[locale]/view/[id]/page.tsx
 ============================================================
 // app/[locale]/view/[id]/page.tsx (전체 코드, 생략 없음)
 import { notFound } from 'next/navigation';
@@ -2056,7 +3085,7 @@ export default async function ViewPage({ params }: { params: { id: string } }) {
 }
 
 ============================================================
-FILE: app\[locale]\view\[id]\PasswordProtect.tsx
+FILE: app/[locale]/view/[id]/PasswordProtect.tsx
 ============================================================
 'use client';
 
@@ -2134,10 +3163,9 @@ export default function PasswordProtect({ post }: { post: Post }) {
 }
 
 ============================================================
-FILE: app\[locale]\view\[id]\PostContent.tsx
+FILE: app/[locale]/view/[id]/PostContent.tsx
 ============================================================
-// app/[locale]/view/[id]/PostContent.tsx (전체 코드)
-
+// app/[locale]/view/[id]/PostContent.tsx (덮어쓰기)
 'use client';
 
 import { useState, useEffect, MouseEvent } from 'react';
@@ -2158,29 +3186,23 @@ export default function PostContent({ post }: { post: Post }) {
   const { data: session } = useSession();
   const isAuthor = session && (session.user as any).id === String(post.user_id);
 
-  const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.classList.contains('spoiler')) {
-      target.classList.remove('spoiler');
-      target.classList.add('spoiler-revealed');
-    }
+  // ▼▼▼ [추가] 인라인 스타일 객체 생성 ▼▼▼
+  const articleStyle = {
+    letterSpacing: post.letter_spacing || 'normal',
+    lineHeight: post.line_height || '1.75',
   };
 
-  const processContentForSpoilers = (text: string) => {
-    return text.replace(/블러\[(.*?)\]/g, '<span class="spoiler">$1</span>');
-  };
-
-  const processedContent = processContentForSpoilers(post.content);
+  const processedContent = post.content; // 스포일러 처리는 CSS로만 하므로 여기서는 제거
 
   return (
+    // ▼▼▼ [수정] article 태그에 폰트 클래스와 스타일 적용 ▼▼▼
     <article
-      className="prose lg:prose-lg w-full max-w-3xl bg-white p-6 sm:p-10 rounded-lg shadow-lg"
-      onClick={handleSpoilerClick}
+      className={`prose lg:prose-lg w-full max-w-3xl bg-white p-6 sm:p-10 rounded-xl border border-gray-200 ${post.font_family || 'font-freesentation'}`}
+      style={articleStyle}
     >
       <div className="flex justify-between items-start border-b pb-4 mb-6">
         <div>
           <h1>{post.title}</h1>
-          {/* ▼▼▼ 작성자 이름과 프로필 링크 추가 ▼▼▼ */}
           {post.author_name && post.user_id && (
             <div className="not-prose -mt-4">
               <Link
@@ -2219,9 +3241,90 @@ export default function PostContent({ post }: { post: Post }) {
 }
 
 ============================================================
-FILE: components\FollowButton.tsx
+FILE: components/EditorToolbar.tsx
 ============================================================
-// components/FollowButton.tsx (전체 코드)
+// components/EditorToolbar.tsx (덮어쓰기)
+'use client';
+
+import React, { RefObject } from 'react';
+import { Bold, Italic, AlignCenter, AlignRight, AlignJustify, Superscript, Subscript } from 'lucide-react';
+
+interface EditorToolbarProps {
+  textareaRef: RefObject<HTMLTextAreaElement>;
+  setContent: (value: string | ((prev: string) => string)) => void;
+}
+
+const ToolbarButton = ({ children, onClick }: { children: React.ReactNode; onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="p-2 rounded-md text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-colors"
+  >
+    {children}
+  </button>
+);
+
+export default function EditorToolbar({ textareaRef, setContent }: EditorToolbarProps) {
+  const applyTag = (tag: 'b' | 'i' | 'sup' | 'sub') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+
+    if (!selectedText) { // 선택된 텍스트가 없을 경우
+        const placeholder = '텍스트';
+        const newText = `${textarea.value.substring(0, start)}<${tag}>${placeholder}</${tag}>${textarea.value.substring(end)}`;
+        setContent(newText);
+        // placeholder 선택
+        setTimeout(() => textarea.setSelectionRange(start + tag.length + 2, start + tag.length + 2 + placeholder.length), 0);
+        return;
+    }
+
+    // 토글 로직: 선택된 텍스트가 이미 해당 태그로 감싸져 있는지 확인
+    const wrapperRegex = new RegExp(`^<${tag}>([\\s\\S]*?)<\\/${tag}>$`);
+    const match = selectedText.match(wrapperRegex);
+
+    let newText;
+    if (match) { // 태그가 있으면 제거 (unwrap)
+      newText = `${textarea.value.substring(0, start)}${match[1]}${textarea.value.substring(end)}`;
+    } else { // 태그가 없으면 추가 (wrap)
+      newText = `${textarea.value.substring(0, start)}<${tag}>${selectedText}</${tag}>${textarea.value.substring(end)}`;
+    }
+    setContent(newText);
+  };
+
+  const applyAlignment = (align: 'center' | 'right' | 'justify') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    let selectedText = textarea.value.substring(start, end);
+    if (!selectedText) selectedText = "정렬할 텍스트";
+
+    // 정렬은 토글하지 않고 항상 새로 적용
+    const newText = `${textarea.value.substring(0, start)}<p style="text-align: ${align};">${selectedText}</p>${textarea.value.substring(end)}`;
+    setContent(newText);
+  };
+
+  return (
+    <div className="flex items-center flex-wrap gap-1 p-1 bg-gray-100 border border-b-0 border-gray-200 rounded-t-md">
+      <ToolbarButton onClick={() => applyTag('b')}><Bold size={16} /></ToolbarButton>
+      <ToolbarButton onClick={() => applyTag('i')}><Italic size={16} /></ToolbarButton>
+      <ToolbarButton onClick={() => applyTag('sup')}><Superscript size={16} /></ToolbarButton>
+      <ToolbarButton onClick={() => applyTag('sub')}><Subscript size={16} /></ToolbarButton>
+      <div className="w-px h-5 bg-gray-300 mx-1"></div>
+      <ToolbarButton onClick={() => applyAlignment('center')}><AlignCenter size={16} /></ToolbarButton>
+      <ToolbarButton onClick={() => applyAlignment('right')}><AlignRight size={16} /></ToolbarButton>
+      <ToolbarButton onClick={() => applyAlignment('justify')}><AlignJustify size={16} /></ToolbarButton>
+    </div>
+  );
+}
+
+============================================================
+FILE: components/FollowButton.tsx
+============================================================
+// components/FollowButton.tsx (덮어쓰기)
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -2243,46 +3346,46 @@ export default function FollowButton({ targetUserId, isInitiallyFollowing }: Fol
 
   if (status === 'unauthenticated') {
     return (
-      <button onClick={() => router.push('/login')} className="px-4 py-1.5 text-sm font-semibold rounded-full bg-gray-900 text-white hover:bg-gray-700">
+      <button onClick={() => router.push('/login')} className="px-4 py-1.5 text-xs font-semibold rounded-full bg-gray-800 text-white hover:bg-gray-700">
         Follow
       </button>
     );
   }
 
   if (!session || session.user.id === String(targetUserId)) {
-    return null; // 자기 자신 프로필에선 안 보임
+    return null;
   }
 
   const handleClick = async () => {
-    const action = isFollowing ? 'unfollow' : 'follow';
-    try {
-      const res = await fetch(`/api/users/${targetUserId}/follow`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) {
-        setIsFollowing(!isFollowing);
-        startTransition(() => {
-          router.refresh(); // 서버 데이터를 다시 불러와 팔로워 수 등을 갱신
+    startTransition(async () => {
+      const action = isFollowing ? 'unfollow' : 'follow';
+      try {
+        const res = await fetch(`/api/users/${targetUserId}/follow`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
         });
-      } else {
-        console.error('Follow action failed');
+        if (res.ok) {
+          setIsFollowing(!isFollowing);
+          router.refresh();
+        } else {
+          console.error('Follow action failed');
+        }
+      } catch (error) {
+        console.error(error);
       }
-    } catch (error) {
-      console.error(error);
-    }
+    });
   };
+
+  const baseStyle = "w-24 px-4 py-1.5 text-xs font-semibold rounded-full transition-colors disabled:opacity-50";
+  const followingStyle = "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100";
+  const followStyle = "bg-gray-800 text-white hover:bg-gray-700 border border-transparent";
 
   return (
     <button
       onClick={handleClick}
       disabled={isLoading}
-      className={`w-28 px-4 py-1.5 text-sm font-semibold rounded-full transition-colors disabled:opacity-50 ${
-        isFollowing
-          ? 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-100'
-          : 'bg-gray-900 text-white hover:bg-gray-700'
-      }`}
+      className={`${baseStyle} ${isFollowing ? followingStyle : followStyle}`}
     >
       {isLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
     </button>
@@ -2290,63 +3393,141 @@ export default function FollowButton({ targetUserId, isInitiallyFollowing }: Fol
 }
 
 ============================================================
-FILE: components\Header.tsx
+FILE: components/FollowListModal.tsx
 ============================================================
-// components/Header.tsx (수정 후 전체 코드)
+// components/FollowListModal.tsx (덮어쓰기)
+'use client';
 
+import Image from 'next/image';
+import Link from 'next/link';
+import FollowButton from './FollowButton';
+import { X } from 'lucide-react';
+
+export interface FollowUser {
+  id: number;
+  name: string;
+  image: string | null;
+  is_followed_by_viewer: boolean;
+}
+
+interface FollowListModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  users: FollowUser[];
+  isLoading: boolean;
+}
+
+export default function FollowListModal({
+  isOpen,
+  onClose,
+  title,
+  users,
+  isLoading,
+}: FollowListModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex justify-center items-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="p-1 rounded-full text-gray-500 hover:bg-gray-200">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-2 max-h-[60vh] overflow-y-auto">
+          {isLoading ? (
+            <div className="py-10 text-center text-sm text-gray-500">Loading...</div>
+          ) : users.length === 0 ? (
+            <div className="py-10 text-center text-sm text-gray-500">No users found.</div>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {users.map((user) => (
+                <li key={user.id} className="flex items-center justify-between p-2">
+                  <Link href={`/profile/${user.id}`} className="flex items-center gap-3 group" onClick={onClose}>
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+                      <Image
+                        src={user.image || '/default-avatar.png'}
+                        alt={user.name}
+                        fill
+                        className="object-cover"
+                        sizes="40px"
+                      />
+                    </div>
+                    <span className="font-medium text-sm text-gray-800 group-hover:underline">{user.name}</span>
+                  </Link>
+                  <FollowButton
+                    targetUserId={user.id}
+                    isInitiallyFollowing={user.is_followed_by_viewer}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+============================================================
+FILE: components/Header.tsx
+============================================================
+// components/Header.tsx (덮어쓰기)
 'use client';
 
 import Link from 'next/link';
-// 1. next/navigation에서 useParams를 import 합니다.
 import { useParams } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import LanguageSwitcher from './LanguageSwitcher';
+import Notifications from './Notifications';
 
 export default function Header({ tHeader, tLang }: { tHeader: any, tLang: any }) {
   const { data: session, status } = useSession();
   const isLoading = status === 'loading';
-  
-  // 2. useParams 훅을 사용해 현재 URL의 파라미터를 가져옵니다.
   const params = useParams();
-  const locale = params.locale as string; // 'ko', 'en' 등이 담깁니다.
+  const locale = params.locale as string;
+
+  const linkStyle = "px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-md transition-colors";
+  const ctaLinkStyle = "px-3 py-1.5 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md transition-colors";
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
+    <header className="bg-white/80 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-200">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link href="/" className="font-bold text-xl text-gray-800">
+          <Link href="/" className="font-bold text-lg text-gray-900">
             Private Media Sharer
           </Link>
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="flex items-center space-x-2">
             <LanguageSwitcher t={tLang} />
             
             {isLoading ? (
               <div className="w-24 h-8 bg-gray-200 rounded-md animate-pulse"></div>
             ) : session ? (
               <>
-                <span className="text-sm text-gray-600 hidden sm:block">
-                  {tHeader.welcome.replace('{name}', session.user?.name || 'User')}
-                </span>
-                <Link href="/my-posts" className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md">
-                  {tHeader.myPosts}
-                </Link>
-                <Link href="/upload" className="px-3 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md">
+                <Notifications />
+                <div className="hidden sm:flex items-center space-x-2">
+                  <Link href="/profile" className={linkStyle}>
+                    {tHeader.myProfile}
+                  </Link>
+                  <Link href="/my-posts" className={linkStyle}>
+                    {tHeader.myPosts}
+                  </Link>
+                  <button onClick={() => signOut({ callbackUrl: `/${locale}` })} className={linkStyle}>
+                    {tHeader.logout}
+                  </button>
+                </div>
+                <Link href="/upload" className={ctaLinkStyle}>
                   {tHeader.writePost}
                 </Link>
-                <button
-                  // 3. callbackUrl을 동적으로 생성합니다. (예: '/ko')
-                  onClick={() => signOut({ callbackUrl: `/${locale}` })}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
-                >
-                  {tHeader.logout}
-                </button>
               </>
             ) : (
               <>
-                <Link href="/login" className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md">
+                <Link href="/login" className={linkStyle}>
                   {tHeader.login}
                 </Link>
-                <Link href="/signup" className="px-3 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md">
+                <Link href="/signup" className={ctaLinkStyle}>
                   {tHeader.signup}
                 </Link>
               </>
@@ -2359,7 +3540,7 @@ export default function Header({ tHeader, tLang }: { tHeader: any, tLang: any })
 }
 
 ============================================================
-FILE: components\LanguageSwitcher.tsx
+FILE: components/LanguageSwitcher.tsx
 ============================================================
 // components/LanguageSwitcher.tsx (수정 후)
 'use client';
@@ -2426,7 +3607,213 @@ export default function LanguageSwitcher({ t }: { t: any }) {
 }
 
 ============================================================
-FILE: components\SessionProvider.tsx
+FILE: components/Notifications.tsx
+============================================================
+// components/Notifications.tsx (새 파일)
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { Bell } from 'lucide-react';
+
+interface Notification {
+  id: number;
+  type: string;
+  is_read: boolean;
+  created_at: string;
+  actor_id: number;
+  actor_name: string;
+}
+
+export default function Notifications() {
+  const { data: session } = useSession();
+  const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (session) {
+      fetchNotifications();
+    }
+  }, [session]);
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownRef]);
+
+
+  const fetchNotifications = async () => {
+    const res = await fetch('/api/notifications');
+    if (res.ok) {
+      const data = await res.json();
+      setNotifications(data.notifications);
+      setUnreadCount(data.unreadCount);
+    }
+  };
+
+  const handleOpen = async () => {
+    setIsOpen(!isOpen);
+    if (!isOpen && unreadCount > 0) {
+      // 모달을 열 때 읽음 처리
+      await fetch('/api/notifications/mark-as-read', { method: 'POST' });
+      setUnreadCount(0);
+    }
+  };
+
+  const getNotificationMessage = (notification: Notification) => {
+    if (notification.type === 'NEW_FOLLOWER') {
+      return (
+        <span>
+          <strong className="font-semibold">{notification.actor_name}</strong>
+          님이 회원님을 팔로우하기 시작했습니다.
+        </span>
+      );
+    }
+    return '새로운 알림이 있습니다.';
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button onClick={handleOpen} className="relative p-2 text-gray-600 hover:text-gray-800 focus:outline-none">
+        <Bell size={20} />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+          <div className="p-3 font-semibold border-b">알림</div>
+          <ul className="py-1 max-h-96 overflow-y-auto">
+            {notifications.length > 0 ? (
+              notifications.map((notif) => (
+                <li key={notif.id}>
+                  <Link
+                    href={`/profile/${notif.actor_id}`}
+                    onClick={() => setIsOpen(false)}
+                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {getNotificationMessage(notif)}
+                    <div className="text-xs text-gray-400 mt-1">
+                      {new Date(notif.created_at).toLocaleString()}
+                    </div>
+                  </Link>
+                </li>
+              ))
+            ) : (
+              <li className="px-4 py-3 text-sm text-gray-500 text-center">
+                새로운 알림이 없습니다.
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+============================================================
+FILE: components/ProfileImageUploader.tsx
+============================================================
+// components/ProfileImageUploader.tsx (새 파일)
+'use client';
+
+import { useState, useRef, ChangeEvent } from 'react';
+import Image from 'next/image';
+import { Camera } from 'lucide-react';
+
+interface ProfileImageUploaderProps {
+  currentImageUrl: string | null;
+  onUploadComplete: () => void;
+}
+
+export default function ProfileImageUploader({
+  currentImageUrl,
+  onUploadComplete,
+}: ProfileImageUploaderProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // 1. 이미지 R2에 업로드
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const uploadData = await uploadResponse.json();
+      if (!uploadResponse.ok) throw new Error(uploadData.error || '이미지 업로드 실패');
+
+      // 2. DB에 이미지 URL 업데이트
+      const updateResponse = await fetch('/api/profile/update-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: uploadData.url }),
+      });
+      if (!updateResponse.ok) throw new Error('프로필 이미지 업데이트 실패');
+      
+      onUploadComplete();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="relative w-24 h-24 group">
+      <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-300">
+        <Image
+          src={currentImageUrl || '/default-avatar.png'}
+          alt="Profile"
+          fill
+          className="object-cover"
+          sizes="96px"
+        />
+      </div>
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isLoading}
+        className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        {isLoading ? (
+          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        ) : (
+          <Camera size={24} />
+        )}
+      </button>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/png, image/jpeg, image/gif"
+        className="hidden"
+      />
+      {error && <p className="text-xs text-red-500 mt-1 absolute">{error}</p>}
+    </div>
+  );
+}
+
+============================================================
+FILE: components/SessionProvider.tsx
 ============================================================
 'use client';
 
@@ -2437,9 +3824,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 }
 
 ============================================================
-FILE: lib\authOptions.ts
+FILE: lib/authOptions.ts
 ============================================================
-// lib/authOptions.ts (내용 최종 확인)
+// lib/authOptions.ts (수정 후)
 
 import { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -2459,17 +3846,18 @@ export const authOptions: AuthOptions = {
           return null;
         }
         try {
+          // ▼▼▼ [수정] image 컬럼을 함께 조회합니다. ▼▼▼
           const result = await db.sql`
-            SELECT id, name, email, password, role FROM users WHERE email = ${credentials.email}
+            SELECT id, name, email, password, role, image FROM users WHERE email = ${credentials.email}
           `;
           const user = result.rows[0];
           if (user && await bcrypt.compare(credentials.password, user.password)) {
-            // authorize에서는 반드시 User 타입과 일치하는 객체를 반환해야 합니다.
             return {
               id: user.id.toString(),
               name: user.name,
               email: user.email,
-              role: user.role, // role 포함
+              role: user.role,
+              image: user.image, // ▼▼▼ [추가] image 정보를 반환 객체에 포함합니다. ▼▼▼
             };
           }
           return null;
@@ -2488,18 +3876,24 @@ export const authOptions: AuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      // user 객체는 로그인 시에만 전달됩니다.
       if (user) {
         token.id = user.id;
-        token.role = user.role; // user 객체의 role을 token에 저장
+        token.role = user.role;
+        // ▼▼▼ [추가] user.image를 token.picture에 저장합니다. (next-auth 기본값) ▼▼▼
+        if (user.image) {
+            token.picture = user.image;
+        }
       }
       return token;
     },
     async session({ session, token }) {
-      // token의 정보를 session.user에 복사합니다.
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        // ▼▼▼ [추가] token.picture를 session.user.image에 저장합니다. ▼▼▼
+        if (token.picture) {
+            session.user.image = token.picture;
+        }
       }
       return session;
     },
@@ -2508,7 +3902,7 @@ export const authOptions: AuthOptions = {
 };
 
 ============================================================
-FILE: lib\dictionary.ts
+FILE: lib/dictionary.ts
 ============================================================
 // lib/dictionary.ts
 
@@ -2526,11 +3920,12 @@ export const getDictionary = async (locale: string) => {
 };
 
 ============================================================
-FILE: messages\en.json
+FILE: messages/en.json
 ============================================================
 {
   "Header": {
     "welcome": "Welcome, {name}!",
+    "myProfile": "My Profile",
     "myPosts": "My Posts",
     "writePost": "Write",
     "logout": "Log Out",
@@ -2632,11 +4027,12 @@ FILE: messages\en.json
 }
 
 ============================================================
-FILE: messages\ja.json
+FILE: messages/ja.json
 ============================================================
 {
   "Header": {
     "welcome": "{name}さん、ようこそ！",
+    "myProfile": "マイプロフィール",
     "myPosts": "マイ投稿",
     "writePost": "作成",
     "logout": "ログアウト",
@@ -2738,11 +4134,12 @@ FILE: messages\ja.json
 }
 
 ============================================================
-FILE: messages\ko.json
+FILE: messages/ko.json
 ============================================================
 {
   "Header": {
     "welcome": "환영합니다, {name}님",
+    "myProfile": "내 프로필",
     "myPosts": "내 포스트",
     "writePost": "글쓰기",
     "logout": "로그아웃",
@@ -2844,7 +4241,110 @@ FILE: messages\ko.json
 }
 
 ============================================================
-FILE: scripts\create-table.js
+FILE: scripts/add-avatar-column.js
+============================================================
+// scripts/add-avatar-column.js
+const { db } = require('@vercel/postgres');
+require('dotenv').config({ path: './.env.local' });
+
+async function addAvatarColumn() {
+  const client = await db.connect();
+  try {
+    // users 테이블에 image 컬럼이 없는 경우에만 추가합니다.
+    await client.sql`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS image VARCHAR(255);
+    `;
+    console.log('Column "image" added to "users" table successfully.');
+  } catch (error) {
+    console.error('Error adding column:', error);
+  } finally {
+    await client.release();
+  }
+}
+
+addAvatarColumn();
+
+============================================================
+FILE: scripts/add-editor-styles-columns.js
+============================================================
+// scripts/add-editor-styles-columns.js
+const { db } = require('@vercel/postgres');
+require('dotenv').config({ path: './.env.local' });
+
+async function addColumns() {
+  const client = await db.connect();
+  try {
+    await client.sql`
+      ALTER TABLE posts
+      ADD COLUMN IF NOT EXISTS letter_spacing VARCHAR(20) DEFAULT 'normal',
+      ADD COLUMN IF NOT EXISTS line_height VARCHAR(20) DEFAULT '1.75';
+    `;
+    console.log('Columns "letter_spacing" and "line_height" added to "posts" table successfully.');
+  } catch (error) {
+    console.error('Error adding columns:', error);
+  } finally {
+    await client.release();
+  }
+}
+
+addColumns();
+
+============================================================
+FILE: scripts/add-og-font-column.js
+============================================================
+// scripts/add-og-font-column.js
+const { db } = require('@vercel/postgres');
+require('dotenv').config({ path: './.env.local' });
+
+async function addColumn() {
+  const client = await db.connect();
+  try {
+    await client.sql`
+      ALTER TABLE posts
+      ADD COLUMN IF NOT EXISTS og_font VARCHAR(50) DEFAULT 'Pretendard';
+    `;
+    console.log('Column "og_font" added to "posts" table successfully.');
+  } catch (error) {
+    console.error('Error adding column:', error);
+  } finally {
+    await client.release();
+  }
+}
+
+addColumn();
+
+============================================================
+FILE: scripts/create-notifications-table.js
+============================================================
+// scripts/create-notifications-table.js
+const { db } = require('@vercel/postgres');
+require('dotenv').config({ path: './.env.local' });
+
+async function createNotificationsTable() {
+  const client = await db.connect();
+  try {
+    await client.sql`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        recipient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        actor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        type VARCHAR(50) NOT NULL, -- e.g., 'NEW_FOLLOWER'
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    console.log('Table "notifications" created successfully.');
+  } catch (error) {
+    console.error('Error creating notifications table:', error);
+  } finally {
+    await client.release();
+  }
+}
+
+createNotificationsTable();
+
+============================================================
+FILE: scripts/create-table.js
 ============================================================
 const { db } = require('@vercel/postgres');
 require('dotenv').config({ path: './.env.local' });
@@ -2873,10 +4373,9 @@ async function createTable() {
 createTable();
 
 ============================================================
-FILE: types\index.ts
+FILE: types/index.ts
 ============================================================
-// types/index.ts (전체 코드)
-
+// types/index.ts (덮어쓰기)
 export interface Post {
   id: string;
   title: string;
@@ -2893,36 +4392,39 @@ export interface Post {
   text_color: string | null;
   user_id?: number;
   visibility?: string;
-  author_name?: string; // ▼▼▼ 작성자 이름을 위해 추가 ▼▼▼
+  author_name?: string;
+  letter_spacing?: string;
+  line_height?: string;
+  // ▼▼▼ [추가] OG 이미지 폰트 속성 ▼▼▼
+  og_font?: string;
 }
 
 ============================================================
-FILE: types\next-auth.d.ts
+FILE: types/next-auth.d.ts
 ============================================================
-// types/next-auth.d.ts (전체 수정)
+// types/next-auth.d.ts (수정 후)
 
 import NextAuth, { DefaultSession, DefaultUser } from 'next-auth';
 import { JWT, DefaultJWT } from 'next-auth/jwt';
 
-// role을 포함하도록 기존 타입을 확장합니다.
+// role과 image를 포함하도록 기존 타입을 확장합니다.
 declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
-      role: string; // role 추가
+      role: string;
     } & DefaultSession['user']; // name, email, image 등 기본 속성 포함
   }
 
   interface User extends DefaultUser {
-    role: string; // role 추가
+    role: string;
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT extends DefaultJWT {
-    role: string; // role 추가
+    role: string;
     id: string;
   }
 }
 
---- END OF FILE merged_code_context.txt ---

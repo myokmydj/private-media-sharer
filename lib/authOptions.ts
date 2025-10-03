@@ -18,9 +18,9 @@ export const authOptions: AuthOptions = {
           return null;
         }
         try {
-          // ▼▼▼ [수정] image 컬럼을 함께 조회합니다. ▼▼▼
+          // ▼▼▼ [수정] image, header_image 컬럼을 함께 조회합니다. ▼▼▼
           const result = await db.sql`
-            SELECT id, name, email, password, role, image FROM users WHERE email = ${credentials.email}
+            SELECT id, name, email, password, role, image, header_image FROM users WHERE email = ${credentials.email}
           `;
           const user = result.rows[0];
           if (user && await bcrypt.compare(credentials.password, user.password)) {
@@ -29,7 +29,8 @@ export const authOptions: AuthOptions = {
               name: user.name,
               email: user.email,
               role: user.role,
-              image: user.image, // ▼▼▼ [추가] image 정보를 반환 객체에 포함합니다. ▼▼▼
+              image: user.image,
+              header_image: user.header_image, // ▼▼▼ [추가] header_image 정보 포함 ▼▼▼
             };
           }
           return null;
@@ -51,9 +52,12 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        // ▼▼▼ [추가] user.image를 token.picture에 저장합니다. (next-auth 기본값) ▼▼▼
         if (user.image) {
             token.picture = user.image;
+        }
+        // ▼▼▼ [추가] user.header_image를 token에 저장합니다. ▼▼▼
+        if (user.header_image) {
+            token.header_image = user.header_image;
         }
       }
       return token;
@@ -62,9 +66,12 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
-        // ▼▼▼ [추가] token.picture를 session.user.image에 저장합니다. ▼▼▼
         if (token.picture) {
             session.user.image = token.picture;
+        }
+        // ▼▼▼ [추가] token.header_image를 session.user에 저장합니다. ▼▼▼
+        if (token.header_image) {
+            session.user.header_image = token.header_image;
         }
       }
       return session;

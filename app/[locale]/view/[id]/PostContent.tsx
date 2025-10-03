@@ -1,5 +1,4 @@
-// app/[locale]/view/[id]/PostContent.tsx (전체 코드)
-
+// app/[locale]/view/[id]/PostContent.tsx (덮어쓰기)
 'use client';
 
 import { useState, useEffect, MouseEvent } from 'react';
@@ -20,29 +19,23 @@ export default function PostContent({ post }: { post: Post }) {
   const { data: session } = useSession();
   const isAuthor = session && (session.user as any).id === String(post.user_id);
 
-  const handleSpoilerClick = (e: MouseEvent<HTMLElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.classList.contains('spoiler')) {
-      target.classList.remove('spoiler');
-      target.classList.add('spoiler-revealed');
-    }
+  // ▼▼▼ [추가] 인라인 스타일 객체 생성 ▼▼▼
+  const articleStyle = {
+    letterSpacing: post.letter_spacing || 'normal',
+    lineHeight: post.line_height || '1.75',
   };
 
-  const processContentForSpoilers = (text: string) => {
-    return text.replace(/블러\[(.*?)\]/g, '<span class="spoiler">$1</span>');
-  };
-
-  const processedContent = processContentForSpoilers(post.content);
+  const processedContent = post.content; // 스포일러 처리는 CSS로만 하므로 여기서는 제거
 
   return (
+    // ▼▼▼ [수정] article 태그에 폰트 클래스와 스타일 적용 ▼▼▼
     <article
-      className="prose lg:prose-lg w-full max-w-3xl bg-white p-6 sm:p-10 rounded-lg shadow-lg"
-      onClick={handleSpoilerClick}
+      className={`prose lg:prose-lg w-full max-w-3xl bg-white p-6 sm:p-10 rounded-xl border border-gray-200 ${post.font_family || 'font-freesentation'}`}
+      style={articleStyle}
     >
       <div className="flex justify-between items-start border-b pb-4 mb-6">
         <div>
           <h1>{post.title}</h1>
-          {/* ▼▼▼ 작성자 이름과 프로필 링크 추가 ▼▼▼ */}
           {post.author_name && post.user_id && (
             <div className="not-prose -mt-4">
               <Link

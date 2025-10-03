@@ -1,126 +1,125 @@
-// api/og/route.tsx
-
+// app/api/og/route.tsx (최종 수정본)
 import { ImageResponse } from 'next/og';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
-// Vercel 엣지 런타임에서 실행되도록 설정하여 속도와 안정성을 높입니다.
 export const runtime = 'edge';
+
+function isColorDark(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const luminance = (r * 299 + g * 587 + b * 114) / 1000;
+  return luminance < 128;
+}
+
+async function getFontData(req: NextRequest, fontFamily: string) {
+  const baseUrl = new URL(req.url).origin;
+
+switch (fontFamily) {
+    case 'Freesentation':
+      const freesentation = await fetch(`${baseUrl}/Freesentation-9Black.ttf`).then((res) => res.arrayBuffer());
+      return { name: 'Freesentation', data: freesentation, weight: 900 as const };
+      
+    case 'BookkMyungjo':
+      const bookkMyungjo = await fetch(`${baseUrl}/BookkMyungjo_Bold.ttf`).then((res) => res.arrayBuffer());
+      return { name: 'BookkMyungjo', data: bookkMyungjo, weight: 700 as const };
+
+    case 'Paperozi':
+       const paperozi = await fetch(`${baseUrl}/Paperlogy-9Black.ttf`).then((res) => res.arrayBuffer());
+       return { name: 'Paperozi', data: paperozi, weight: 700 as const };
+
+    case 'Pretendard':
+    default:
+      const pretendard = await fetch(`${baseUrl}/PretendardJP-Black.otf`).then((res) => res.arrayBuffer());
+      return { name: 'Pretendard', data: pretendard, weight: 700 as const };
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // --- URL 파라미터 파싱 (기존과 동일) ---
-    const title = searchParams.get('title') || '제목 없음';
-    const artist = searchParams.get('artist');
+    const title = searchParams.get('title') || '제목을 입력해주세요';
     const imageUrl = searchParams.get('imageUrl');
+    const tagsStr = searchParams.get('tags');
     const isBlurred = searchParams.get('isBlurred') === 'true';
     const isSpoiler = searchParams.get('isSpoiler') === 'true';
     const isNsfw = searchParams.get('isNsfw') === 'true';
-    const tagsParam = searchParams.get('tags');
-    const tags = tagsParam ? tagsParam.split(',').map(tag => tag.trim()).filter(Boolean) : [];
-    const backgroundColor = searchParams.get('bgColor') || '#28234D';
+    const artist = searchParams.get('artist');
+    const bgColor = searchParams.get('bgColor') || '#28234D';
     const textColor = searchParams.get('textColor') || '#FFFFFF';
+    const ogFont = searchParams.get('ogFont') || 'Pretendard';
 
-    let tagBackgroundColor = 'rgba(255, 255, 255, 0.15)';
-    if (textColor === '#000000') {
-      tagBackgroundColor = 'rgba(0, 0, 0, 0.1)';
-    }
-    const playButtonColor = backgroundColor;
-
-    const previewText = artist
-      ? artist
-          .replace(/!\[.*?\]\(.*?\)/g, '')
-          .replace(/<img[^>]*>/gi, '')
-          .replace(/블러\[.*?\]/g, '')
-          .replace(/\n/g, ' ')
-          .trim()
-      : '';
-
-    // --- 폰트 데이터를 웹에서 직접 가져오기 ---
-    // GitHub의 raw 파일 URL을 사용합니다.
-    const pretendardBlackPromise = fetch(
-      'https://raw.githubusercontent.com/orioncactus/pretendard/main/packages/pretendard-jp/dist/public/static/PretendardJP-Black.otf'
-    ).then((res) => res.arrayBuffer());
-
-    const pretendardMediumPromise = fetch(
-      'https://raw.githubusercontent.com/orioncactus/pretendard/main/packages/pretendard-jp/dist/public/static/PretendardJP-Medium.otf'
-    ).then((res) => res.arrayBuffer());
-    
-    // 두 폰트를 동시에(병렬로) 다운로드하여 시간 절약
-    const [pretendardBlackFont, pretendardMediumFont] = await Promise.all([
-      pretendardBlackPromise,
-      pretendardMediumPromise,
-    ]);
+    const tags = tagsStr ? tagsStr.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+    const fontData = await getFontData(req, ogFont);
+    const previewText = artist || (isSpoiler ? '내용이 가려졌습니다.' : '');
+    const isBgDark = isColorDark(bgColor);
+    const tagBgColor = isBgDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)';
 
     return new ImageResponse(
       (
-        // --- JSX 템플릿 (기존과 동일, 폰트 이름만 확인) ---
-        <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: backgroundColor, color: textColor, padding: '40px' }}>
-          <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-            <div style={{ position: 'relative', width: 550, height: 550, display: 'flex' }}>
+        <div 
+          style={{
+            fontFamily: `"${fontData.name}"`,
+            backgroundColor: bgColor,
+            color: textColor,
+          }}
+          tw="flex w-full h-full p-12"
+        >
+          {/* 이미지 영역 (왼쪽) */}
+          <div tw="w-1/2 h-full flex items-center justify-center pr-8">
               {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt=""
-                  width={550}
-                  height={550}
-                  style={{ borderRadius: '20px', objectFit: 'cover', filter: (isBlurred || isNsfw) ? 'blur(40px)' : 'none' }}
-                />
-              )}
-              {isNsfw && (
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ fontFamily: '"PretendardJP-Black"', fontSize: '120px', color: 'white', letterSpacing: '0.1em' }}>
-                    NSFW
+                  <div tw="relative w-full h-full rounded-2xl overflow-hidden flex">
+                      <img src={imageUrl} alt="" tw="w-full h-full object-cover" style={{ filter: isBlurred || isNsfw ? 'blur(24px)' : 'none' }} />
+                      {isNsfw && (
+                        // ▼▼▼ [수정] text-white 클래스를 추가하여 글자색을 흰색으로 고정합니다. ▼▼▼
+                        <div tw="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 font-black text-8xl tracking-widest text-white">
+                          NSFW
+                        </div>
+                        // ▲▲▲ 여기까지 수정 ▲▲▲
+                      )}
                   </div>
-                </div>
               )}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '40px', flex: 1, justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.8 }}>
-                <div style={{ fontFamily: '"PretendardJP-Black"', fontSize: '36px', color: textColor, letterSpacing: '0.05em' }}>
-                  PREVIEW
+          </div>
+
+          {/* 텍스트 영역 (오른쪽) */}
+          <div tw="w-1/2 h-full flex flex-col justify-between" style={{ fontWeight: fontData.weight }}>
+              <div tw="flex justify-end text-4xl font-black tracking-wider opacity-80">
+                PREVIEW
+              </div>
+              
+              {/* 중앙 콘텐츠 */}
+              <div tw="flex flex-col">
+                  {tags.length > 0 && (
+                      <div tw="flex flex-wrap gap-2 mb-4">
+                          {tags.slice(0, 3).map((tag, i) => (
+                              <span key={i} tw="text-lg px-3 py-1 rounded-full" style={{ backgroundColor: tagBgColor }}>{tag}</span>
+                          ))}
+                      </div>
+                  )}
+                  <h1 tw="text-6xl font-black break-words" style={{ lineHeight: 1.2 }}>{title}</h1>
+                  {previewText && <p tw="text-2xl opacity-70 mt-4 line-clamp-2">{previewText}</p>}
+              </div>
+
+              <div tw="flex justify-end">
+                <div tw="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: textColor }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill={bgColor}>
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-                  {tags.map((tag) => ( <div key={tag} style={{ display: 'flex', padding: '6px 16px', backgroundColor: tagBackgroundColor, borderRadius: '9999px', fontSize: '28px', fontFamily: '"PretendardJP-Medium"', fontWeight: 400, lineHeight: 1.2 }}>{tag}</div> ))}
-                </div>
-                <div style={{ fontSize: '60px', fontWeight: 'bold', letterSpacing: '-0.02em', fontFamily: '"PretendardJP-Black"' }}>{title}</div>
-                {previewText && (<div style={{ fontSize: '40px', marginTop: '10px', opacity: 0.7, wordBreak: 'break-all', lineHeight: 1.3, fontFamily: '"PretendardJP-Medium"', fontWeight: 400 }}>{isSpoiler ? '내용이 가려졌습니다.' : previewText}</div>)}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100px', height: '100px', backgroundColor: textColor, borderRadius: '50%' }}>
-                  <svg width="50" height="50" viewBox="0_0_24_24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 5.13965V18.8604C8 19.56 8.66274 20.0168 9.30852 19.642L20.6915 12.7816C21.3373 12.4078 21.3373 11.5922 20.6915 11.2184L9.30852 4.35795C8.66274 3.98317 8 4.44004 8 5.13965Z" fill={playButtonColor}/></svg>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       ),
-      { 
-        width: 1200, 
+      {
+        width: 1200,
         height: 630,
-        // --- fonts 옵션에 fetch로 가져온 폰트 데이터 연결 ---
-        fonts: [
-          {
-            name: 'PretendardJP-Black', // JSX에서 사용한 이름과 동일하게
-            data: pretendardBlackFont,   // fetch로 가져온 폰트 데이터
-            style: 'normal',
-            weight: 900, // Pretendard Black 굵기
-          },
-          {
-            name: 'PretendardJP-Medium', // JSX에서 사용한 이름과 동일하게
-            data: pretendardMediumFont,  // fetch로 가져온 폰트 데이터
-            style: 'normal',
-            weight: 500, // Pretendard Medium 굵기
-          },
-        ] 
-      },
+        fonts: [{ name: fontData.name, data: fontData.data, weight: fontData.weight, style: 'normal' }],
+      }
     );
-
-  } catch (e: any) { // 타입을 any로 변경하여 에러 메시지 접근 용이
-    console.error(`OG 이미지 생성 실패: ${e.message}`);
-    return new NextResponse(`Failed to generate the image: ${e.message}`, { status: 500 });
+  } catch (e: any) {
+    console.error(`OG Image generation failed: ${e.message}`);
+    return new Response('Failed to generate OG image', { status: 500 });
   }
 }

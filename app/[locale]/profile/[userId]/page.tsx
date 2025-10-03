@@ -5,22 +5,22 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
-import Link from 'next/link';
 import FollowButton from '@/components/FollowButton';
 import FollowListModal, { FollowUser } from '@/components/FollowListModal';
 import ProfileImageUploader from '@/components/ProfileImageUploader';
-import type { Post } from '@/types';
-import { Edit } from 'lucide-react';
+import ProfileHeaderUploader from '@/components/ProfileHeaderUploader';
+import PostList from './PostList';
+import MemoList from './MemoList';
 
 interface UserProfile {
   id: number;
   name: string;
   email: string;
   image: string | null;
+  header_image: string | null;
 }
 interface ProfileData {
   user: UserProfile;
-  posts: Post[];
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
@@ -38,27 +38,27 @@ export default function ProfilePage() {
   const [modalTitle, setModalTitle] = useState('');
   const [modalUsers, setModalUsers] = useState<FollowUser[]>([]);
   const [isModalLoading, setIsModalLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'memos'>('posts');
+
+  const fetchProfileData = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch(`/api/profile/${profileId}`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setProfileData(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isNaN(profileId)) {
       notFound();
       return;
     }
-    
-    const fetchProfileData = async () => {
-      try {
-        setIsLoading(true);
-        const res = await fetch(`/api/profile/${profileId}`);
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
-        setProfileData(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchProfileData();
   }, [profileId]);
 
@@ -85,87 +85,72 @@ export default function ProfilePage() {
     return notFound();
   }
 
-  const { user, posts, followerCount, followingCount, isFollowing } = profileData;
+  const { user, followerCount, followingCount, isFollowing } = profileData;
   const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
   const isOwnProfile = viewerId === user.id;
+
+  const tabStyle = "px-4 py-2 text-sm font-semibold border-b-2 transition-colors";
+  const activeTabStyle = "border-gray-800 text-gray-800";
+  const inactiveTabStyle = "border-transparent text-gray-500 hover:text-gray-700";
 
   return (
     <>
       <main className="max-w-4xl mx-auto p-4 sm:p-8">
-        <div className="bg-white p-6 sm:p-8 rounded-xl border border-gray-200 mb-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            
-            {isOwnProfile ? (
-              <ProfileImageUploader 
-                currentImageUrl={user.image}
-                onUploadComplete={() => router.refresh()}
-              />
-            ) : (
-              <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                <Image
-                  src={user.image || '/default-avatar.png'}
-                  alt={user.name}
-                  fill
-                  className="object-cover"
-                  sizes="96px"
+        <div className="bg-white rounded-xl border border-gray-200 mb-8">
+          {isOwnProfile ? (
+            <ProfileHeaderUploader 
+              currentImageUrl={user.header_image}
+              onUploadComplete={fetchProfileData}
+            />
+          ) : (
+            <div 
+              className="w-full h-48 bg-cover bg-center rounded-t-xl"
+              style={{ backgroundImage: `url(${user.header_image || '/default-header.png'})` }}
+            />
+          )}
+          
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 -mt-16 sm:-mt-12">
+              {isOwnProfile ? (
+                <ProfileImageUploader 
+                  currentImageUrl={user.image}
+                  onUploadComplete={fetchProfileData}
                 />
-              </div>
-            )}
-
-            <div className="flex-grow text-center sm:text-left w-full">
-              <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-              <p className="text-sm text-gray-500 mt-1">{user.email}</p>
-              <div className="flex justify-center sm:justify-start space-x-4 mt-3 text-sm">
-                <button onClick={() => handleOpenModal('followers')} className="text-gray-600 hover:text-gray-900">
-                  <span className="font-semibold text-gray-800">{followerCount}</span> Followers
-                </button>
-                <button onClick={() => handleOpenModal('following')} className="text-gray-600 hover:text-gray-900">
-                  <span className="font-semibold text-gray-800">{followingCount}</span> Following
-                </button>
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              {!isOwnProfile && viewerId && (
-                <FollowButton targetUserId={user.id} isInitiallyFollowing={isFollowing} />
+              ) : (
+                <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 border-4 border-white">
+                  <Image src={user.image || '/default-avatar.png'} alt={user.name} fill className="object-cover" sizes="96px" />
+                </div>
               )}
+
+              <div className="flex-grow text-center sm:text-left w-full pt-12 sm:pt-0">
+                <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+                <p className="text-sm text-gray-500 mt-1">{user.email}</p>
+                <div className="flex justify-center sm:justify-start space-x-4 mt-3 text-sm">
+                  <button onClick={() => handleOpenModal('followers')} className="text-gray-600 hover:text-gray-900"><span className="font-semibold text-gray-800">{followerCount}</span> Followers</button>
+                  <button onClick={() => handleOpenModal('following')} className="text-gray-600 hover:text-gray-900"><span className="font-semibold text-gray-800">{followingCount}</span> Following</button>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                {!isOwnProfile && viewerId && (
+                  <FollowButton targetUserId={user.id} isInitiallyFollowing={isFollowing} />
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <h2 className="text-xl font-bold text-gray-800 mb-6 px-2">Public Posts</h2>
-        {posts.length === 0 ? (
-          <div className="text-center bg-white p-8 rounded-xl border border-gray-200">
-            <p className="text-sm text-gray-600">This user has no public posts yet.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {posts.map((post) => (
-              <Link key={post.id} href={`/view/${post.id}`} className="group block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                <div className="relative aspect-square">
-                  <Image
-                    src={post.thumbnail_url}
-                    alt={post.title}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className={`object-cover transition-transform group-hover:scale-105 ${post.is_nsfw || post.is_thumbnail_blurred ? 'blur-md' : ''}`}
-                  />
-                  {post.is_nsfw && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-sm tracking-widest">NSFW</div>}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-base text-gray-800 truncate">{post.title}</h3>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+            <button onClick={() => setActiveTab('posts')} className={`${tabStyle} ${activeTab === 'posts' ? activeTabStyle : inactiveTabStyle}`}>Posts</button>
+            <button onClick={() => setActiveTab('memos')} className={`${tabStyle} ${activeTab === 'memos' ? activeTabStyle : inactiveTabStyle}`}>Memos</button>
+          </nav>
+        </div>
+
+        <div>
+          {activeTab === 'posts' ? <PostList userId={profileId} /> : <MemoList userId={profileId} />}
+        </div>
       </main>
-      <FollowListModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={modalTitle}
-        users={modalUsers}
-        isLoading={isModalLoading}
-      />
+      <FollowListModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalTitle} users={modalUsers} isLoading={isModalLoading} />
     </>
   );
 }

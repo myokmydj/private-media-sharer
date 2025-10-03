@@ -42,8 +42,11 @@ export default function Header({ tHeader, tLang }: { tHeader: any, tLang: any })
                     {tHeader.logout}
                   </button>
                 </div>
+                <Link href="/memo/new" className={linkStyle}>
+                  새 메모
+                </Link>
                 <Link href="/upload" className={ctaLinkStyle}>
-                  {tHeader.writePost}
+                  새 포스트
                 </Link>
               </>
             ) : (
