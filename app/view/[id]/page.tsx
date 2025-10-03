@@ -13,16 +13,12 @@ interface Post {
   created_at: string;
 }
 
-/**
- * 데이터베이스에서 ID에 해당하는 게시물 정보를 가져옵니다.
- */
 async function getPostData(id: string): Promise<Post | null> {
-  noStore(); // 페이지 요청 시 항상 DB에서 최신 데이터를 가져오도록 캐싱 비활성화
+  // ... (이 함수는 변경 없음)
+  noStore();
   try {
     const { rows } = await db.sql`SELECT * FROM posts WHERE id = ${id} LIMIT 1;`;
-    if (rows.length === 0) {
-      return null;
-    }
+    if (rows.length === 0) return null;
     return rows[0] as Post;
   } catch (error) {
     console.error("Database query failed:", error);
@@ -42,20 +38,34 @@ export async function generateMetadata({ params }: { params: { id:string } }): P
     };
   }
 
+  // 본문 내용에서 첫 50자를 잘라 '가수 이름'으로 사용
+  const artistName = post.content
+    ? post.content.replace(/\n/g, ' ').substring(0, 50) + (post.content.length > 50 ? '...' : '')
+    : '';
+  
+  // 이미지 생성 API에 전달할 URL 파라미터를 만듭니다.
+  const ogImageUrl = new URL(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/og`);
+  ogImageUrl.searchParams.set('title', post.title);
+  if (artistName) {
+    ogImageUrl.searchParams.set('artist', artistName);
+  }
+  ogImageUrl.searchParams.set('imageUrl', post.thumbnail_url);
+
   return {
     title: post.title,
-    description: '친구로부터 공유된 게시물을 확인하세요.', // 필요하다면 본문 내용 일부를 잘라서 넣어도 좋습니다.
+    description: artistName || '친구로부터 공유된 게시물을 확인하세요.',
     openGraph: {
       title: post.title,
-      description: '친구로부터 공유된 게시물을 확인하세요.',
-      images: [post.thumbnail_url], // DB에 저장된 대표 이미지 URL을 바로 사용
+      description: artistName || '친구로부터 공유된 게시물을 확인하세요.',
+      // 이제 직접 생성한 이미지 URL을 사용합니다!
+      images: [ogImageUrl.toString()],
       type: 'article',
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
-      description: '친구로부터 공유된 게시물을 확인하세요.',
-      images: [post.thumbnail_url],
+      description: artistName || '친구로부터 공유된 게시물을 확인하세요.',
+      images: [ogImageUrl.toString()],
     },
   };
 }
@@ -64,26 +74,19 @@ export async function generateMetadata({ params }: { params: { id:string } }): P
  * 게시물을 보여주는 페이지 컴포넌트입니다.
  */
 export default async function ViewPage({ params }: { params: { id: string } }) {
+  // ... (이 컴포넌트는 변경 없음)
   const post = await getPostData(params.id);
-
-  if (!post) {
-    notFound();
-  }
+  if (!post) notFound();
 
   return (
     <main className="flex min-h-screen justify-center bg-gray-100 py-8 px-4">
       <article className="prose lg:prose-xl w-full max-w-4xl bg-white p-8 sm:p-12 rounded-lg shadow-lg">
-        {/* 
-          prose 클래스는 tailwindcss/typography 플러그인에서 제공하는 스타일입니다.
-          만약 tailwindcss/typography를 사용하지 않는다면, 이 클래스를 제거하고 직접 스타일링해야 합니다.
-          이미지 스타일링을 위해 아래와 같이 컴포넌트를 커스텀할 수 있습니다.
-        */}
         <h1>{post.title}</h1>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
             img: ({node, ...props}) => (
-              <img {...props} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} />
+              <img {...props} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }} alt="" />
             ),
           }}
         >
