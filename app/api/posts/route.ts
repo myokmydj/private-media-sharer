@@ -1,20 +1,40 @@
 import { NextResponse } from 'next/server';
 import { db } from '@vercel/postgres';
 import { nanoid } from 'nanoid';
+import bcrypt from 'bcrypt';
 
 export async function POST(request: Request) {
   try {
-    const { title, content, thumbnailUrl, isThumbnailBlurred, isContentSpoiler } = await request.json();
+    const { 
+      title, 
+      content, 
+      thumbnailUrl, 
+      isThumbnailBlurred, 
+      isContentSpoiler, 
+      // ▼▼▼ isNsfw 값 수신 ▼▼▼
+      isNsfw,
+      // ▲▲▲ isNsfw 값 수신 ▲▲▲
+      selectedFont,
+      password
+    } = await request.json();
 
     if (!title || !content || !thumbnailUrl) {
       return NextResponse.json({ error: '제목, 내용, 대표 이미지는 필수입니다.' }, { status: 400 });
     }
 
+    let hashedPassword = null;
+    if (password && password.length > 0) {
+      const saltRounds = 10;
+      hashedPassword = await bcrypt.hash(password, saltRounds);
+    }
+
     const id = nanoid();
 
     await db.sql`
-      INSERT INTO posts (id, title, content, thumbnail_url, is_thumbnail_blurred, is_content_spoiler)
-      VALUES (${id}, ${title}, ${content}, ${thumbnailUrl}, ${isThumbnailBlurred}, ${isContentSpoiler});
+      -- ▼▼▼ is_nsfw 컬럼 추가 ▼▼▼
+      INSERT INTO posts (id, title, content, thumbnail_url, is_thumbnail_blurred, is_content_spoiler, is_nsfw, font_family, password)
+      VALUES (${id}, ${title}, ${content}, ${thumbnailUrl}, ${isThumbnailBlurred}, ${isContentSpoiler}, ${isNsfw}, ${selectedFont}, ${hashedPassword});
+      -- ▲▲▲ is_nsfw 컬럼 추가 ▲▲▲
     `;
 
     const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
