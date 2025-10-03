@@ -12,7 +12,7 @@ const config: Config = {
     extend: {},
   },
   plugins: [
-    require('@tailwindcss/typography'), // <--- 이 줄을 추가하세요!
+    require('@tailwindcss/typography'),
   ],
 };
 export default config;

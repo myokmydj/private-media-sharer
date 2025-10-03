@@ -1,8 +1,8 @@
-// postcss.config.js (최종 수정안)
+// postcss.config.js
 
 module.exports = {
-  plugins: [
-    'tailwindcss', // require()나 객체 대신, 단순 문자열 배열로 지정
-    'autoprefixer',
-  ],
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
 };
