@@ -40,7 +40,7 @@ export async function GET(
   }
 }
 
-// --- PUT 함수 (수정된 부분) ---
+// --- PUT 함수 (수정된 최종 버전) ---
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -53,45 +53,53 @@ export async function PUT(
     const userId = parseInt(session.user.id, 10);
     const postId = params.id;
 
-    const {
-      title, tags, content, thumbnailUrl,
-      isThumbnailBlurred, isContentSpoiler, isNsfw,
-      selectedFont, password, dominantColor, textColor,
-      visibility,
-    } = await req.json();
+    const body = await req.json();
 
-    // ▼▼▼ 2. 업데이트할 필드들을 배열에 담습니다. ▼▼▼
-    const setClauses = [
-      sql`title = ${title}`,
-      sql`tags = ${tags}`,
-      sql`content = ${content}`,
-      sql`thumbnail_url = ${thumbnailUrl}`,
-      sql`is_thumbnail_blurred = ${isThumbnailBlurred}`,
-      sql`is_content_spoiler = ${isContentSpoiler}`,
-      sql`is_nsfw = ${isNsfw}`,
-      sql`font_family = ${selectedFont}`,
-      sql`dominant_color = ${dominantColor}`,
-      sql`text_color = ${textColor}`,
-      sql`visibility = ${visibility}`,
-    ];
+    // 1. 업데이트할 필드와 값을 객체로 준비합니다. (DB 컬럼명과 일치시켜야 함)
+    const updates: { [key: string]: any } = {
+      title: body.title,
+      tags: body.tags,
+      content: body.content,
+      thumbnail_url: body.thumbnailUrl,
+      is_thumbnail_blurred: body.isThumbnailBlurred,
+      is_content_spoiler: body.isContentSpoiler,
+      is_nsfw: body.isNsfw,
+      font_family: body.selectedFont,
+      dominant_color: body.dominantColor,
+      text_color: body.textColor,
+      visibility: body.visibility,
+    };
 
-    // ▼▼▼ 3. 비밀번호 필드는 조건에 따라 배열에 추가합니다. ▼▼▼
-    if (password) {
-      // 새 비밀번호가 있으면 해싱하여 추가
-      const hashedPassword = await bcrypt.hash(password, 10);
-      setClauses.push(sql`password = ${hashedPassword}`);
-    } else if (visibility !== 'password') {
-      // 비밀번호가 없는 공개방식으로 변경 시, 비밀번호를 null로 초기화
-      setClauses.push(sql`password = NULL`);
+    // 2. 비밀번호 필드를 조건부로 추가합니다.
+    if (body.password) {
+      updates.password = await bcrypt.hash(body.password, 10);
+    } else if (body.visibility !== 'password') {
+      updates.password = null;
     }
-    // (비밀번호 입력 없고, 여전히 'password' 공개 방식이면 아무것도 추가 안 함 -> 기존 값 유지)
 
-    // ▼▼▼ 4. sql.join을 사용하여 모든 SET 절을 쉼표(,)로 안전하게 연결합니다. ▼▼▼
-    const result = await db.query(sql`
+    // 3. 쿼리 문자열의 SET 부분을 동적으로 생성합니다.
+    // 예: "title" = $1, "tags" = $2, ...
+    const setClauses = Object.keys(updates)
+      .map((key, index) => `"${key}" = $${index + 1}`)
+      .join(', ');
+
+    // 4. 값 배열을 생성합니다.
+    const values = Object.values(updates);
+
+    // 5. WHERE 절에 필요한 값을 값 배열 뒤에 추가합니다.
+    const whereClauseStartIndex = values.length + 1;
+    values.push(postId);
+    values.push(userId);
+
+    // 6. 최종 쿼리 문자열을 조립합니다.
+    const queryString = `
       UPDATE posts
-      SET ${sql.join(setClauses, ', ')}
-      WHERE id = ${postId} AND user_id = ${userId};
-    `);
+      SET ${setClauses}
+      WHERE id = $${whereClauseStartIndex} AND user_id = $${whereClauseStartIndex + 1}
+    `;
+
+    // 7. 쿼리 문자열과 값 배열을 db.query에 전달하여 실행합니다.
+    const result = await db.query(queryString, values);
 
     if ((result?.rowCount ?? 0) === 0) {
       return NextResponse.json({ error: '수정할 게시물을 찾을 수 없거나 권한이 없습니다.' }, { status: 404 });
