@@ -30,5 +30,6 @@ export interface Memo {
   created_at: string;
   author_name: string;
   author_image: string | null;
+  // ▼▼▼ [추가] 저자의 헤더 이미지 정보를 타입에 추가합니다. ▼▼▼
   author_header_image?: string | null;
 }

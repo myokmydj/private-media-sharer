@@ -15,7 +15,8 @@ async function getMemoData(id: string): Promise<Memo | null> {
       SELECT 
         m.*, 
         u.name as author_name,
-        u.image as author_image
+        u.image as author_image,
+        u.header_image as author_header_image 
       FROM memos m
       JOIN users u ON m.user_id = u.id
       WHERE m.id = ${id}
@@ -43,11 +44,14 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${process.env.VERCEL_URL}`;
   const ogImageUrl = new URL(`${baseUrl}/api/og/memo`);
-  ogImageUrl.searchParams.set('userId', String(memo.user_id));
+  
+  // ▼▼▼ [핵심 변경] userId 대신 필요한 모든 정보를 URL 파라미터로 직접 전달합니다. ▼▼▼
+  ogImageUrl.searchParams.set('userName', memo.author_name);
+  ogImageUrl.searchParams.set('userImage', memo.author_image || '');
+  ogImageUrl.searchParams.set('userHeaderImage', memo.author_header_image || '');
   ogImageUrl.searchParams.set('content', memo.content);
-  // ▼▼▼ [수정] search_params -> searchParams 로 오타를 수정합니다. ▼▼▼
   ogImageUrl.searchParams.set('spoilerIcon', memo.spoiler_icon);
-  // ▲▲▲ 여기까지 수정 ▲▲▲
+  // ▲▲▲ 이 부분이 올바르게 적용되어야 합니다. ▲▲▲
 
   return {
     title: `${memo.author_name}님의 메모`,
