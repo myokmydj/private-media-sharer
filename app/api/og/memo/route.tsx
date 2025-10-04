@@ -66,6 +66,10 @@ export async function GET(req: NextRequest) {
         getImageBuffer(userImage, '/default-avatar.png', baseUrl)
     ]);
 
+    // ▼▼▼ [핵심 수정] @ts-ignore 대신 'as any'를 사용하여 타입을 명시적으로 변환합니다. ▼▼▼
+    const headerImageSrc = headerImageBuffer as any;
+    const profileImageSrc = profileImageBuffer as any;
+
     return new ImageResponse(
       (
         <div tw="flex w-full h-full bg-white" style={{ fontFamily: 'Freesentation' }}>
@@ -82,8 +86,7 @@ export async function GET(req: NextRequest) {
           <div tw="w-1/3 h-full flex flex-col">
             {/* 헤더 이미지 영역 */}
             <div tw="w-full h-1/2 flex">
-              {/* @ts-ignore */}
-              <img src={headerImageBuffer} tw="w-full h-full" style={{ objectFit: 'cover' }} />
+              <img src={headerImageSrc} tw="w-full h-full" style={{ objectFit: 'cover' }} />
             </div>
             {/* 닉네임 영역 */}
             <div tw="w-full h-1/2 flex items-center justify-center">
@@ -92,13 +95,11 @@ export async function GET(req: NextRequest) {
           </div>
 
           {/* 프로필 사진 (두 컬럼 위에 겹치도록 절대 위치) */}
-          {/* @ts-ignore */}
           <img
-            src={profileImageBuffer}
+            src={profileImageSrc}
             tw="absolute rounded-full w-40 h-40 border-8 border-white"
             style={{
               top: '50%',
-              // ▼▼▼ [핵심 수정] calc() 대신 정적 픽셀 값(800px)을 사용합니다. ▼▼▼
               left: '800px',
               transform: 'translate(-50%, -50%)',
               objectFit: 'cover'
