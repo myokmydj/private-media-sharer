@@ -1,4 +1,5 @@
 // app/[locale]/memo/[id]/page.tsx
+
 import { notFound } from 'next/navigation';
 import { db } from '@vercel/postgres';
 import type { Metadata } from 'next';
@@ -79,6 +80,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
+// ... 파일의 나머지 부분은 그대로 둡니다 ...
 async function checkMemoPermission(memo: Memo, viewerId: number | null): Promise<boolean> {
   const authorId = memo.user_id;
   if (memo.visibility === 'public' || !memo.visibility) {

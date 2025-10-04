@@ -1,4 +1,4 @@
-// app/api/og/memo/route.tsx
+// app/api/og/memo/route.tsx (수정 후)
 
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
@@ -22,23 +22,14 @@ async function getImageBuffer(url: string | null, defaultImagePath: string, base
     if (url && url.startsWith('/')) {
         imageUrl = new URL(url, baseUrl).toString();
     }
-
     try {
-        if (!imageUrl || !imageUrl.startsWith('http')) {
-            throw new Error("Invalid or missing image URL, using fallback.");
-        }
+        if (!imageUrl || !imageUrl.startsWith('http')) throw new Error("Invalid URL");
         const response = await fetch(imageUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch image from ${imageUrl}`);
-        }
+        if (!response.ok) throw new Error(`Failed to fetch image`);
         return await response.arrayBuffer();
     } catch (e) {
-        console.warn(`Warning: ${(e as Error).message}. Fetching default image: ${defaultImagePath}`);
         const defaultUrl = new URL(defaultImagePath, baseUrl).toString();
         const response = await fetch(defaultUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch default image from ${defaultUrl}`);
-        }
         return await response.arrayBuffer();
     }
 }
@@ -49,72 +40,80 @@ export async function GET(req: NextRequest) {
     const searchParams = nextUrl.searchParams;
     const baseUrl = nextUrl.origin;
 
-    const userName = searchParams.get('userName');
+    const userName = searchParams.get('userName') || 'USER';
     const userImage = searchParams.get('userImage');
     const userHeaderImage = searchParams.get('userHeaderImage');
-    const content = searchParams.get('content') || '';
+    const content = searchParams.get('content') || '내용이 없습니다.';
     const spoilerIcon = searchParams.get('spoilerIcon') || '🔑';
 
-    if (!userName) {
-      return new Response('User name is required', { status: 400 });
-    }
-    
     const processedContent = parseContent(content, spoilerIcon);
 
-    const [regularFontData, blackFontData, headerImageBuffer, profileImageBuffer] = await Promise.all([
+    // ▼▼▼ [수정] 고정폭 폰트(Roboto Mono)를 추가로 불러옵니다. ▼▼▼
+    const [regularFontData, blackFontData, monoFontData, headerImageBuffer, profileImageBuffer] = await Promise.all([
         fetch(new URL('/Freesentation-4Regular.ttf', baseUrl)).then(res => res.arrayBuffer()),
         fetch(new URL('/Freesentation-9Black.ttf', baseUrl)).then(res => res.arrayBuffer()),
+        fetch(new URL('/RobotoMono-Regular.ttf', baseUrl)).then(res => res.arrayBuffer()), // public 폴더에 폰트 파일 필요
         getImageBuffer(userHeaderImage, '/default-header.png', baseUrl),
         getImageBuffer(userImage, '/default-avatar.png', baseUrl)
     ]);
 
     const headerImageSrc = headerImageBuffer as any;
     const profileImageSrc = profileImageBuffer as any;
+    const currentDate = new Date().toISOString().split('T')[0];
 
     return new ImageResponse(
       (
-        <div
-          tw="w-full h-full flex bg-white"
-          style={{ fontFamily: 'Freesentation', fontWeight: 400 }}
-        >
-          {/* 왼쪽 컬럼 (본문) */}
-          <div tw="w-2/3 h-full flex flex-col justify-center bg-neutral-900 p-16 rounded-tr-2xl rounded-br-2xl relative">
-            <div tw="text-4xl text-neutral-300 flex flex-wrap" style={{ lineHeight: 1.6 }}>
+        // ▼▼▼ [핵심] JSX 구조를 완전히 재설계합니다. ▼▼▼
+        <div tw="w-full h-full flex items-center justify-center relative bg-neutral-100">
+          {/* 1. 배경 이미지 (헤더 이미지) */}
+          <img 
+            src={headerImageSrc} 
+            tw="absolute inset-0 w-full h-full" 
+            style={{ objectFit: 'cover', opacity: 0.3 }} 
+          />
+          <div tw="absolute inset-0 w-full h-full bg-white/20" />
+
+          {/* 2. 메인 콘텐츠 카드 */}
+          <div tw="w-[1000px] h-[500px] bg-white/90 border border-gray-200/50 rounded-lg shadow-2xl flex flex-col p-12 relative"
+               style={{ fontFamily: 'Freesentation', backdropFilter: 'blur(10px)' }}>
+            
+            {/* 상단 헤더 */}
+            <div tw="flex justify-between items-center text-xs uppercase" style={{ fontFamily: 'Roboto Mono' }}>
+              <span>Memo / Private Sharing</span>
+              <span>Date: {currentDate}</span>
+            </div>
+
+            <div tw="w-full h-px bg-gray-300 my-4" />
+
+            {/* 본문 내용 */}
+            <div tw="flex-grow text-2xl text-neutral-800" style={{ lineHeight: 1.7 }}>
               {processedContent.map((part, i) => (
-                <span key={i} tw={part.isSpoiler ? 'text-5xl' : ''}>{part.text}</span>
+                <span key={i} tw={part.isSpoiler ? 'text-4xl' : ''}>{part.text}</span>
               ))}
             </div>
-            <div tw="absolute bottom-8 left-16 text-xl text-neutral-400 bg-neutral-800/80 px-4 py-1 rounded-full">
-              {userName}님의 메모
+
+            {/* 하단 푸터 (서비스 이름) */}
+            <div tw="text-xs text-gray-400" style={{ fontFamily: 'Roboto Mono' }}>
+              Generated by private-media-sharer.vercel.app
             </div>
           </div>
 
-          {/* ▼▼▼ [핵심 수정] 오른쪽 컬럼 구조 변경 ▼▼▼ */}
-          {/* 1. 오른쪽 컬럼에 relative를 추가해 자식 요소의 absolute 위치 기준점으로 만듭니다. */}
-          <div tw="w-1/3 h-full flex flex-col relative"> 
-            {/* 상단: 헤더 이미지 */}
-            <div tw="w-full h-1/2 flex">
-              <img src={headerImageSrc} tw="w-full h-full" style={{ objectFit: 'cover' }} />
-            </div>
-            {/* 하단: 닉네임 */}
-            <div tw="w-full h-1/2 flex items-center justify-center">
-              <span tw="text-5xl text-neutral-800" style={{ fontWeight: 900 }}>{userName}</span>
-            </div>
-
-            {/* 2. 프로필 이미지를 오른쪽 컬럼 내에서 절대 위치로 중앙에 배치합니다. */}
-            <img
-              src={profileImageSrc}
-              tw="absolute rounded-full w-40 h-40 border-8 border-white"
-              style={{
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                objectFit: 'cover'
-              }}
+          {/* 3. 프로필 정보 카드 (오른쪽에 겹쳐짐) */}
+          <div tw="absolute top-1/2 right-12 transform -translate-y-1/2 w-64 h-auto bg-white p-6 rounded-lg shadow-xl border border-gray-200 flex flex-col items-center">
+            <img 
+              src={profileImageSrc} 
+              tw="w-24 h-24 rounded-full border-4 border-white shadow-md -mt-16" 
+              style={{ objectFit: 'cover' }}
             />
+            <span tw="mt-4 text-2xl text-neutral-800" style={{ fontWeight: 900 }}>
+              {userName}
+            </span>
+            <span tw="text-xs text-gray-400 mt-1" style={{ fontFamily: 'Roboto Mono' }}>
+              MEMO BY
+            </span>
           </div>
-          {/* ▲▲▲ 여기까지 수정 ▲▲▲ */}
         </div>
+        // ▲▲▲ 여기까지 수정 ▲▲▲
       ),
       {
         width: 1200,
@@ -122,6 +121,7 @@ export async function GET(req: NextRequest) {
         fonts: [
           { name: 'Freesentation', data: regularFontData, weight: 400, style: 'normal' },
           { name: 'Freesentation', data: blackFontData, weight: 900, style: 'normal' },
+          { name: 'Roboto Mono', data: monoFontData, weight: 400, style: 'normal' }, // 폰트 등록
         ],
       }
     );
