@@ -60,7 +60,6 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   ogImageUrl.searchParams.set('userHeaderImage', getAbsoluteUrl(memo.author_header_image));
   ogImageUrl.searchParams.set('content', ogContent); // 잘린 내용을 전달
   ogImageUrl.searchParams.set('spoilerIcon', memo.spoiler_icon);
-  // ▲▲▲ 여기까지 수정 ▲▲▲
 
   return {
     title: `${memo.author_name}님의 메모`,
