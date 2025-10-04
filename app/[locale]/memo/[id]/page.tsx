@@ -45,17 +45,19 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${process.env.VERCEL_URL}`;
   const ogImageUrl = new URL(`${baseUrl}/api/og/memo`);
   
-  // ▼▼▼ [수정] 이미지 URL이 상대 경로일 경우를 대비해 절대 경로로 만들어줍니다. ▼▼▼
   const getAbsoluteUrl = (url: string | null | undefined) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
     return new URL(url, baseUrl).toString();
   };
 
+  // ▼▼▼ [핵심 수정] content 파라미터의 길이를 200자로 제한합니다. ▼▼▼
+  const ogContent = memo.content.length > 200 ? memo.content.substring(0, 200) + '...' : memo.content;
+
   ogImageUrl.searchParams.set('userName', memo.author_name);
   ogImageUrl.searchParams.set('userImage', getAbsoluteUrl(memo.author_image));
   ogImageUrl.searchParams.set('userHeaderImage', getAbsoluteUrl(memo.author_header_image));
-  ogImageUrl.searchParams.set('content', memo.content);
+  ogImageUrl.searchParams.set('content', ogContent); // 잘린 내용을 전달
   ogImageUrl.searchParams.set('spoilerIcon', memo.spoiler_icon);
   // ▲▲▲ 여기까지 수정 ▲▲▲
 

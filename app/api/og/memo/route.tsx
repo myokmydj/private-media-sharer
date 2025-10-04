@@ -5,8 +5,8 @@ import { NextRequest } from 'next/server';
 export const runtime = 'edge';
 
 function parseContent(content: string, spoilerIcon: string) {
-  const trimmedContent = content.length > 150 ? content.substring(0, 150) + '...' : content;
-  const parts = trimmedContent.split(/(\|\|.*?\|\|)/g).filter(Boolean);
+  // ▼▼▼ [수정] 이미 잘려서 들어온 텍스트를 그대로 사용하도록 수정합니다. ▼▼▼
+  const parts = content.split(/(\|\|.*?\|\|)/g).filter(Boolean);
   
   return parts.map(part => {
     if (part.startsWith('||') && part.endsWith('||')) {
@@ -50,7 +50,6 @@ export async function GET(req: NextRequest) {
 
     const userName = searchParams.get('userName');
     const userImage = searchParams.get('userImage');
-    // ▼▼▼ [핵심 수정] 'search_params' 오타를 'searchParams'로 바로잡았습니다. ▼▼▼
     const userHeaderImage = searchParams.get('userHeaderImage');
     const content = searchParams.get('content') || '';
     const spoilerIcon = searchParams.get('spoilerIcon') || '🔑';
@@ -93,9 +92,8 @@ export async function GET(req: NextRequest) {
           </div>
 
           {/* 프로필 사진 (두 컬럼 위에 겹치도록 절대 위치) */}
-          {/* @ts-ignore 주석이 이 img 태그에 적용되어 타입 오류를 막습니다. */}
+          {/* @ts-ignore */}
           <img
-            // @ts-ignore
             src={profileImageBuffer}
             tw="absolute rounded-full w-40 h-40 border-8 border-white"
             style={{
