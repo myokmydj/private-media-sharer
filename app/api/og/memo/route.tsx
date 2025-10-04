@@ -1,4 +1,5 @@
 // app/api/og/memo/route.tsx
+
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 
@@ -72,51 +73,47 @@ export async function GET(req: NextRequest) {
 
     return new ImageResponse(
       (
-        // ▼▼▼ [핵심 수정] 레이아웃과 오버레이 요소를 분리하는 구조로 변경합니다. ▼▼▼
         <div
-          tw="w-full h-full bg-white"
-          style={{
-            fontFamily: 'Freesentation',
-            fontWeight: 400,
-            position: 'relative', // 자식의 absolute 위치를 위한 기준점
-          }}
+          tw="w-full h-full flex bg-white"
+          style={{ fontFamily: 'Freesentation', fontWeight: 400 }}
         >
-          {/* 1. 레이아웃을 담당하는 단일 자식 div */}
-          <div tw="w-full h-full flex">
-            {/* 왼쪽 컬럼 (본문) */}
-            <div tw="w-2/3 h-full flex flex-col justify-center bg-neutral-900 p-16 rounded-tr-2xl rounded-br-2xl relative">
-              <div tw="text-4xl text-neutral-300 flex flex-wrap" style={{ lineHeight: 1.6 }}>
-                {processedContent.map((part, i) => (
-                  <span key={i} tw={part.isSpoiler ? 'text-5xl' : ''}>{part.text}</span>
-                ))}
-              </div>
-              <div tw="absolute bottom-8 left-16 text-xl text-neutral-400 bg-neutral-800/80 px-4 py-1 rounded-full">
-                {userName}님의 메모
-              </div>
+          {/* 왼쪽 컬럼 (본문) */}
+          <div tw="w-2/3 h-full flex flex-col justify-center bg-neutral-900 p-16 rounded-tr-2xl rounded-br-2xl relative">
+            <div tw="text-4xl text-neutral-300 flex flex-wrap" style={{ lineHeight: 1.6 }}>
+              {processedContent.map((part, i) => (
+                <span key={i} tw={part.isSpoiler ? 'text-5xl' : ''}>{part.text}</span>
+              ))}
             </div>
-
-            {/* 오른쪽 컬럼 (헤더, 닉네임) */}
-            <div tw="w-1/3 h-full flex flex-col">
-              <div tw="w-full h-1/2 flex">
-                <img src={headerImageSrc} tw="w-full h-full" style={{ objectFit: 'cover' }} />
-              </div>
-              <div tw="w-full h-1/2 flex items-center justify-center">
-                <span tw="text-5xl text-neutral-800" style={{ fontWeight: 900 }}>{userName}</span>
-              </div>
+            <div tw="absolute bottom-8 left-16 text-xl text-neutral-400 bg-neutral-800/80 px-4 py-1 rounded-full">
+              {userName}님의 메모
             </div>
           </div>
 
-          {/* 2. 오버레이를 담당하는 단일 자식 img */}
-          <img
-            src={profileImageSrc}
-            tw="absolute rounded-full w-40 h-40 border-8 border-white"
-            style={{
-              top: '315px',
-              left: '800px',
-              transform: 'translate(-50%, -50%)',
-              objectFit: 'cover'
-            }}
-          />
+          {/* ▼▼▼ [핵심 수정] 오른쪽 컬럼 구조 변경 ▼▼▼ */}
+          {/* 1. 오른쪽 컬럼에 relative를 추가해 자식 요소의 absolute 위치 기준점으로 만듭니다. */}
+          <div tw="w-1/3 h-full flex flex-col relative"> 
+            {/* 상단: 헤더 이미지 */}
+            <div tw="w-full h-1/2 flex">
+              <img src={headerImageSrc} tw="w-full h-full" style={{ objectFit: 'cover' }} />
+            </div>
+            {/* 하단: 닉네임 */}
+            <div tw="w-full h-1/2 flex items-center justify-center">
+              <span tw="text-5xl text-neutral-800" style={{ fontWeight: 900 }}>{userName}</span>
+            </div>
+
+            {/* 2. 프로필 이미지를 오른쪽 컬럼 내에서 절대 위치로 중앙에 배치합니다. */}
+            <img
+              src={profileImageSrc}
+              tw="absolute rounded-full w-40 h-40 border-8 border-white"
+              style={{
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                objectFit: 'cover'
+              }}
+            />
+          </div>
+          {/* ▲▲▲ 여기까지 수정 ▲▲▲ */}
         </div>
       ),
       {

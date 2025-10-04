@@ -656,6 +656,83 @@ const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
 
 ============================================================
+FILE: app/api/memos/route.ts
+============================================================
+// app/api/memos/route.ts
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+import { nanoid } from 'nanoid';
+
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: '인증되지 않은 사용자입니다.' }, { status: 401 });
+  }
+  const userId = parseInt(session.user.id, 10);
+
+  try {
+    const { content, spoiler_icon, visibility } = await request.json();
+
+    if (!content) {
+      return NextResponse.json({ error: '내용은 필수입니다.' }, { status: 400 });
+    }
+
+    const id = nanoid(21);
+
+    await db.sql`
+      INSERT INTO memos (id, user_id, content, spoiler_icon, visibility)
+      VALUES (${id}, ${userId}, ${content}, ${spoiler_icon}, ${visibility});
+    `;
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${process.env.VERCEL_URL}`;
+    // ▼▼▼ [수정] 생성되는 URL에 기본 로케일 'ko'를 포함시킵니다. ▼▼▼
+    const defaultLocale = 'ko';
+    return NextResponse.json({ url: `${baseUrl}/${defaultLocale}/memo/${id}` });
+    // ▲▲▲ 여기까지 수정 ▲▲▲
+
+  } catch (error) {
+    console.error('Memo creation failed:', error);
+    return NextResponse.json({ error: '메모 생성 중 서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/memos/[id]/route.ts
+============================================================
+// app/api/memos/[id]/route.ts
+import { NextResponse } from 'next/server';
+import { db } from '@vercel/postgres';
+
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const result = await db.sql`
+      SELECT 
+        m.*, 
+        u.name as author_name,
+        u.image as author_image,
+        u.header_image as author_header_image
+      FROM memos m
+      JOIN users u ON m.user_id = u.id
+      WHERE m.id = ${params.id}
+      LIMIT 1;
+    `;
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: '메모를 찾을 수 없습니다.' }, { status: 404 });
+    }
+    return NextResponse.json(result.rows[0]);
+  } catch (error) {
+    console.error('Failed to fetch memo:', error);
+    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+  }
+}
+
+============================================================
 FILE: app/api/notifications/route.ts
 ============================================================
 // app/api/notifications/route.ts (새 파일)
@@ -867,6 +944,145 @@ export async function GET(req: NextRequest) {
 }
 
 ============================================================
+FILE: app/api/og/memo/route.tsx
+============================================================
+// app/api/og/memo/route.tsx
+import { ImageResponse } from 'next/og';
+import { NextRequest } from 'next/server';
+
+export const runtime = 'edge';
+
+function parseContent(content: string, spoilerIcon: string) {
+  const trimmedContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
+  const parts = trimmedContent.split(/(\|\|.*?\|\|)/g).filter(Boolean);
+  
+  return parts.map(part => {
+    if (part.startsWith('||') && part.endsWith('||')) {
+      return { isSpoiler: true, text: spoilerIcon };
+    }
+    return { isSpoiler: false, text: part };
+  });
+}
+
+async function getImageBuffer(url: string | null, defaultImagePath: string, baseUrl: string): Promise<ArrayBuffer> {
+    let imageUrl = url;
+    if (url && url.startsWith('/')) {
+        imageUrl = new URL(url, baseUrl).toString();
+    }
+
+    try {
+        if (!imageUrl || !imageUrl.startsWith('http')) {
+            throw new Error("Invalid or missing image URL, using fallback.");
+        }
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image from ${imageUrl}`);
+        }
+        return await response.arrayBuffer();
+    } catch (e) {
+        console.warn(`Warning: ${(e as Error).message}. Fetching default image: ${defaultImagePath}`);
+        const defaultUrl = new URL(defaultImagePath, baseUrl).toString();
+        const response = await fetch(defaultUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch default image from ${defaultUrl}`);
+        }
+        return await response.arrayBuffer();
+    }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { nextUrl } = req;
+    const searchParams = nextUrl.searchParams;
+    const baseUrl = nextUrl.origin;
+
+    const userName = searchParams.get('userName');
+    const userImage = searchParams.get('userImage');
+    const userHeaderImage = searchParams.get('userHeaderImage');
+    const content = searchParams.get('content') || '';
+    const spoilerIcon = searchParams.get('spoilerIcon') || '🔑';
+
+    if (!userName) {
+      return new Response('User name is required', { status: 400 });
+    }
+    
+    const processedContent = parseContent(content, spoilerIcon);
+
+    const [regularFontData, blackFontData, headerImageBuffer, profileImageBuffer] = await Promise.all([
+        fetch(new URL('/Freesentation-4Regular.ttf', baseUrl)).then(res => res.arrayBuffer()),
+        fetch(new URL('/Freesentation-9Black.ttf', baseUrl)).then(res => res.arrayBuffer()),
+        getImageBuffer(userHeaderImage, '/default-header.png', baseUrl),
+        getImageBuffer(userImage, '/default-avatar.png', baseUrl)
+    ]);
+
+    const headerImageSrc = headerImageBuffer as any;
+    const profileImageSrc = profileImageBuffer as any;
+
+    return new ImageResponse(
+      (
+        // ▼▼▼ [핵심 수정] 레이아웃과 오버레이 요소를 분리하는 구조로 변경합니다. ▼▼▼
+        <div
+          tw="w-full h-full bg-white"
+          style={{
+            fontFamily: 'Freesentation',
+            fontWeight: 400,
+            position: 'relative', // 자식의 absolute 위치를 위한 기준점
+          }}
+        >
+          {/* 1. 레이아웃을 담당하는 단일 자식 div */}
+          <div tw="w-full h-full flex">
+            {/* 왼쪽 컬럼 (본문) */}
+            <div tw="w-2/3 h-full flex flex-col justify-center bg-neutral-900 p-16 rounded-tr-2xl rounded-br-2xl relative">
+              <div tw="text-4xl text-neutral-300 flex flex-wrap" style={{ lineHeight: 1.6 }}>
+                {processedContent.map((part, i) => (
+                  <span key={i} tw={part.isSpoiler ? 'text-5xl' : ''}>{part.text}</span>
+                ))}
+              </div>
+              <div tw="absolute bottom-8 left-16 text-xl text-neutral-400 bg-neutral-800/80 px-4 py-1 rounded-full">
+                {userName}님의 메모
+              </div>
+            </div>
+
+            {/* 오른쪽 컬럼 (헤더, 닉네임) */}
+            <div tw="w-1/3 h-full flex flex-col">
+              <div tw="w-full h-1/2 flex">
+                <img src={headerImageSrc} tw="w-full h-full" style={{ objectFit: 'cover' }} />
+              </div>
+              <div tw="w-full h-1/2 flex items-center justify-center">
+                <span tw="text-5xl text-neutral-800" style={{ fontWeight: 900 }}>{userName}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. 오버레이를 담당하는 단일 자식 img */}
+          <img
+            src={profileImageSrc}
+            tw="absolute rounded-full w-40 h-40 border-8 border-white"
+            style={{
+              top: '315px',
+              left: '800px',
+              transform: 'translate(-50%, -50%)',
+              objectFit: 'cover'
+            }}
+          />
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 630,
+        fonts: [
+          { name: 'Freesentation', data: regularFontData, weight: 400, style: 'normal' },
+          { name: 'Freesentation', data: blackFontData, weight: 900, style: 'normal' },
+        ],
+      }
+    );
+  } catch (e: any) {
+    console.error(`OG Memo generation failed: ${e.message}`);
+    return new Response('Failed to generate OG image', { status: 500 });
+  }
+}
+
+============================================================
 FILE: app/api/posts/route.ts
 ============================================================
 // app/api/posts/route.ts (덮어쓰기)
@@ -1042,6 +1258,37 @@ export async function DELETE(
 }
 
 ============================================================
+FILE: app/api/profile/update-header/route.ts
+============================================================
+// app/api/profile/update-header/route.ts
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { db } from '@vercel/postgres';
+
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: '인증되지 않았습니다.' }, { status: 401 });
+  }
+
+  const userId = parseInt(session.user.id, 10);
+  const { imageUrl }: { imageUrl: string } = await request.json();
+
+  if (!imageUrl) {
+    return NextResponse.json({ error: '이미지 URL이 필요합니다.' }, { status: 400 });
+  }
+
+  try {
+    await db.sql`UPDATE users SET header_image = ${imageUrl} WHERE id = ${userId};`;
+    return NextResponse.json({ success: true, imageUrl });
+  } catch (error) {
+    console.error('Failed to update header image:', error);
+    return NextResponse.json({ error: '서버 오류' }, { status: 500 });
+  }
+}
+
+============================================================
 FILE: app/api/profile/update-image/route.ts
 ============================================================
 // app/api/profile/update-image/route.ts (새 파일)
@@ -1075,7 +1322,7 @@ export async function POST(request: Request) {
 ============================================================
 FILE: app/api/profile/[userId]/route.ts
 ============================================================
-// app/api/profile/[userId]/route.ts (새 파일)
+// app/api/profile/[userId]/route.ts (수정 후)
 import { NextResponse } from 'next/server';
 import { db } from '@vercel/postgres';
 import { getServerSession } from 'next-auth/next';
@@ -1094,18 +1341,12 @@ export async function GET(
   const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
 
   try {
-    const userResult = await db.sql`SELECT id, name, email, image FROM users WHERE id = ${profileId} LIMIT 1;`;
+    // 포스트 목록 조회를 제거하고 사용자 정보만 가져옵니다.
+    const userResult = await db.sql`SELECT id, name, email, image, header_image FROM users WHERE id = ${profileId} LIMIT 1;`;
     if (userResult.rowCount === 0) {
       return NextResponse.json({ error: '사용자를 찾을 수 없음' }, { status: 404 });
     }
     
-    const postsResult = await db.sql`
-      SELECT id, title, thumbnail_url, is_nsfw, is_thumbnail_blurred 
-      FROM posts 
-      WHERE user_id = ${profileId} AND visibility = 'public'
-      ORDER BY created_at DESC;
-    `;
-
     const followerCountResult = await db.sql`SELECT COUNT(*) FROM follows WHERE following_id = ${profileId};`;
     const followingCountResult = await db.sql`SELECT COUNT(*) FROM follows WHERE follower_id = ${profileId};`;
 
@@ -1117,13 +1358,72 @@ export async function GET(
 
     const profileData = {
       user: userResult.rows[0],
-      posts: postsResult.rows,
       followerCount: parseInt(followerCountResult.rows[0].count, 10),
       followingCount: parseInt(followingCountResult.rows[0].count, 10),
       isFollowing,
     };
 
     return NextResponse.json(profileData);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: '서버 오류' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/profile/[userId]/memos/route.ts
+============================================================
+// app/api/profile/[userId]/memos/route.ts
+import { NextResponse } from 'next/server';
+import { db } from '@vercel/postgres';
+
+export async function GET(
+  req: Request,
+  { params }: { params: { userId: string } }
+) {
+  const profileId = parseInt(params.userId, 10);
+  if (isNaN(profileId)) {
+    return NextResponse.json({ error: '잘못된 ID' }, { status: 400 });
+  }
+
+  try {
+    const memosResult = await db.sql`
+      SELECT id, content, created_at
+      FROM memos 
+      WHERE user_id = ${profileId} AND visibility = 'public'
+      ORDER BY created_at DESC;
+    `;
+    return NextResponse.json(memosResult.rows);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: '서버 오류' }, { status: 500 });
+  }
+}
+
+============================================================
+FILE: app/api/profile/[userId]/posts/route.ts
+============================================================
+// app/api/profile/[userId]/posts/route.ts
+import { NextResponse } from 'next/server';
+import { db } from '@vercel/postgres';
+
+export async function GET(
+  req: Request,
+  { params }: { params: { userId: string } }
+) {
+  const profileId = parseInt(params.userId, 10);
+  if (isNaN(profileId)) {
+    return NextResponse.json({ error: '잘못된 ID' }, { status: 400 });
+  }
+
+  try {
+    const postsResult = await db.sql`
+      SELECT id, title, thumbnail_url, is_nsfw, is_thumbnail_blurred 
+      FROM posts 
+      WHERE user_id = ${profileId} AND visibility = 'public'
+      ORDER BY created_at DESC;
+    `;
+    return NextResponse.json(postsResult.rows);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: '서버 오류' }, { status: 500 });
@@ -2042,6 +2342,300 @@ export default function LoginPage() {
 }
 
 ============================================================
+FILE: app/[locale]/memo/new/page.tsx
+============================================================
+// app/[locale]/memo/new/page.tsx
+'use client';
+
+import { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function NewMemoPage() {
+  const router = useRouter();
+  const [content, setContent] = useState('');
+  const [spoilerIcon, setSpoilerIcon] = useState('🔑');
+  const [visibility, setVisibility] = useState('public');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [generatedLink, setGeneratedLink] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!content.trim()) {
+      setError('내용을 입력해주세요.');
+      return;
+    }
+    setIsSubmitting(true);
+    setError('');
+    setGeneratedLink('');
+
+    try {
+      const res = await fetch('/api/memos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          spoiler_icon: spoilerIcon,
+          visibility,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '메모 생성 실패');
+      setGeneratedLink(data.url);
+      setContent('');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const buttonStyle = "w-full px-4 py-2.5 text-base font-semibold text-white bg-gray-800 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400";
+
+  return (
+    <main className="min-h-screen p-4 sm:p-8">
+      <div className="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-xl border border-gray-200">
+        <h1 className="text-2xl font-black text-center text-gray-900 mb-6">새 메모 작성</h1>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">내용</label>
+            <textarea
+              id="content"
+              rows={8}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="block w-full text-sm px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+              placeholder="메모 내용을 입력하세요. 스포일러 처리를 하려면 ||텍스트|| 와 같이 두 개의 파이프 문자로 감싸주세요."
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="spoilerIcon" className="block text-sm font-medium text-gray-700 mb-1">스포일러 아이콘</label>
+              <select
+                id="spoilerIcon"
+                value={spoilerIcon}
+                onChange={(e) => setSpoilerIcon(e.target.value)}
+                className="block w-full text-sm px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+              >
+                <option value="🔑">🔑 열쇠</option>
+                <option value="🔞">🔞 18금</option>
+                <option value="🔥">🔥 화제</option>
+              </select>
+            </div>
+            <div>
+              <h4 className="block text-sm font-medium text-gray-700 mb-2">공개 범위</h4>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="public" checked={visibility === 'public'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">전체 공개</span></label>
+                <label className="flex items-center space-x-2"><input type="radio" name="visibility" value="followers_only" checked={visibility === 'followers_only'} onChange={(e) => setVisibility(e.target.value)} className="h-4 w-4" /> <span className="text-sm">팔로워만</span></label>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" disabled={isSubmitting} className={buttonStyle}>
+            {isSubmitting ? '생성 중...' : '메모 링크 생성'}
+          </button>
+        </form>
+        {error && <p className="mt-4 text-sm text-center text-red-600">{error}</p>}
+        {generatedLink && (<div className="mt-6 p-4 bg-gray-100 border border-gray-200 rounded-md"><p className="text-sm font-medium text-gray-800">✅ 성공! 생성된 링크:</p><a href={generatedLink} target="_blank" rel="noopener noreferrer" className="block mt-1 text-sm text-gray-900 font-semibold break-all hover:underline">{generatedLink}</a></div>)}
+      </div>
+    </main>
+  );
+}
+
+============================================================
+FILE: app/[locale]/memo/[id]/MemoContent.tsx
+============================================================
+// app/[locale]/memo/[id]/MemoContent.tsx
+'use client';
+
+import { useState, useEffect, MouseEvent } from 'react';
+import type { Memo } from '@/types';
+import Link from 'next/link';
+import Image from 'next/image';
+
+function SpoilerContent({ text }: { text: string }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <span
+      className={revealed ? 'spoiler-revealed' : 'spoiler'}
+      onClick={() => setRevealed(true)}
+    >
+      {text}
+    </span>
+  );
+}
+
+export default function MemoContent({ memo }: { memo: Memo }) {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => { setIsClient(true); }, []);
+
+  const parsedContent = memo.content.split(/(\|\|.*?\|\|)/g).filter(Boolean);
+
+  return (
+    <div className="w-full max-w-2xl bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+      <div className="flex items-center mb-6 not-prose">
+        <Link href={`/profile/${memo.user_id}`} className="flex items-center gap-3 group">
+          <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-200">
+            <Image
+              src={memo.author_image || '/default-avatar.png'}
+              alt={memo.author_name}
+              fill
+              className="object-cover"
+              sizes="48px"
+            />
+          </div>
+          <div>
+            <p className="font-bold text-gray-800 group-hover:underline">{memo.author_name}</p>
+            <p className="text-xs text-gray-500">{new Date(memo.created_at).toLocaleString()}</p>
+          </div>
+        </Link>
+      </div>
+      
+      <div className="prose prose-lg max-w-none whitespace-pre-wrap break-words">
+        {isClient ? (
+          parsedContent.map((part, index) => {
+            if (part.startsWith('||') && part.endsWith('||')) {
+              return <SpoilerContent key={index} text={part.slice(2, -2)} />;
+            }
+            return part;
+          })
+        ) : (
+          <p>Loading content...</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+============================================================
+FILE: app/[locale]/memo/[id]/page.tsx
+============================================================
+// app/[locale]/memo/[id]/page.tsx
+import { notFound } from 'next/navigation';
+import { db } from '@vercel/postgres';
+import type { Metadata } from 'next';
+import { unstable_noStore as noStore } from 'next/cache';
+import MemoContent from './MemoContent';
+import type { Memo } from '@/types';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+
+async function getMemoData(id: string): Promise<Memo | null> {
+  noStore();
+  try {
+    const { rows } = await db.sql<Memo>`
+      SELECT 
+        m.*, 
+        u.name as author_name,
+        u.image as author_image,
+        u.header_image as author_header_image 
+      FROM memos m
+      JOIN users u ON m.user_id = u.id
+      WHERE m.id = ${id}
+      LIMIT 1;
+    `;
+    if (rows.length === 0) return null;
+    return rows[0];
+  } catch (error) {
+    console.error("Database query failed:", error);
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const memo = await getMemoData(params.id);
+  if (!memo) {
+    return { title: '메모를 찾을 수 없습니다' };
+  }
+
+  const cleanDescription = memo.content
+    .replace(/\|\|.*?\|\|/g, `[${memo.spoiler_icon}]`)
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 100);
+  
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${process.env.VERCEL_URL}`;
+  const ogImageUrl = new URL(`${baseUrl}/api/og/memo`);
+  
+  const getAbsoluteUrl = (url: string | null | undefined) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return new URL(url, baseUrl).toString();
+  };
+
+  // ▼▼▼ [핵심 수정] content 파라미터의 길이를 200자로 제한합니다. ▼▼▼
+  const ogContent = memo.content.length > 200 ? memo.content.substring(0, 200) + '...' : memo.content;
+
+  ogImageUrl.searchParams.set('userName', memo.author_name);
+  ogImageUrl.searchParams.set('userImage', getAbsoluteUrl(memo.author_image));
+  ogImageUrl.searchParams.set('userHeaderImage', getAbsoluteUrl(memo.author_header_image));
+  ogImageUrl.searchParams.set('content', ogContent); // 잘린 내용을 전달
+  ogImageUrl.searchParams.set('spoilerIcon', memo.spoiler_icon);
+  // ▲▲▲ 여기까지 수정 ▲▲▲
+
+  return {
+    title: `${memo.author_name}님의 메모`,
+    description: cleanDescription,
+    openGraph: {
+      title: `${memo.author_name}님의 메모`,
+      description: cleanDescription,
+      images: [ogImageUrl.toString()],
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${memo.author_name}님의 메모`,
+      description: cleanDescription,
+      images: [ogImageUrl.toString()],
+    },
+  };
+}
+
+async function checkMemoPermission(memo: Memo, viewerId: number | null): Promise<boolean> {
+  const authorId = memo.user_id;
+  if (memo.visibility === 'public' || !memo.visibility) {
+    return true;
+  }
+  if (!viewerId) return false;
+  if (viewerId === authorId) return true;
+  if (memo.visibility === 'followers_only') {
+    const result = await db.sql`SELECT 1 FROM follows WHERE follower_id = ${viewerId} AND following_id = ${authorId} LIMIT 1;`;
+    return (result?.rowCount ?? 0) > 0;
+  }
+  return false;
+}
+
+export default async function ViewMemoPage({ params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
+  const memo = await getMemoData(params.id);
+  
+  if (!memo) {
+    notFound();
+  }
+
+  const hasPermission = await checkMemoPermission(memo, viewerId);
+  if (!hasPermission) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+        <div className="w-full max-w-md p-8 text-center space-y-4 bg-white rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold text-gray-800">접근 권한 없음</h2>
+          <p className="text-gray-600">이 메모를 볼 수 있는 권한이 없습니다.</p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-gray-100 py-8 px-4 flex items-center justify-center">
+      <MemoContent memo={memo} />
+    </main>
+  );
+}
+
+============================================================
 FILE: app/[locale]/my-posts/page.tsx
 ============================================================
 // app/[locale]/my-posts/page.tsx (덮어쓰기)
@@ -2149,6 +2743,63 @@ export default async function MyProfilePage() {
 }
 
 ============================================================
+FILE: app/[locale]/profile/[userId]/MemoList.tsx
+============================================================
+// app/[locale]/profile/[userId]/MemoList.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import type { Memo } from '@/types';
+
+export default function MemoList({ userId }: { userId: number }) {
+  const [memos, setMemos] = useState<Memo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMemos = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`/api/profile/${userId}/memos`);
+        if (!res.ok) throw new Error('Failed to fetch memos');
+        const data = await res.json();
+        setMemos(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMemos();
+  }, [userId]);
+
+  if (isLoading) {
+    return <div className="py-10 text-center text-sm text-gray-500">Loading memos...</div>;
+  }
+
+  if (memos.length === 0) {
+    return (
+      <div className="text-center bg-gray-50 p-8 rounded-lg border border-gray-200">
+        <p className="text-sm text-gray-600">This user has no public memos yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {memos.map((memo) => (
+        <Link key={memo.id} href={`/memo/${memo.id}`} className="block bg-white p-4 rounded-lg border border-gray-200 hover:border-gray-400 transition-colors">
+          <p className="text-gray-700 line-clamp-3 whitespace-pre-wrap break-words">
+            {memo.content.replace(/\|\|.*?\|\|/g, '[스포일러]')}
+          </p>
+          <p className="text-xs text-gray-400 mt-2 text-right">{new Date(memo.created_at).toLocaleDateString()}</p>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+============================================================
 FILE: app/[locale]/profile/[userId]/page.tsx
 ============================================================
 // app/[locale]/profile/[userId]/page.tsx (덮어쓰기)
@@ -2158,22 +2809,22 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
-import Link from 'next/link';
 import FollowButton from '@/components/FollowButton';
 import FollowListModal, { FollowUser } from '@/components/FollowListModal';
 import ProfileImageUploader from '@/components/ProfileImageUploader';
-import type { Post } from '@/types';
-import { Edit } from 'lucide-react';
+import ProfileHeaderUploader from '@/components/ProfileHeaderUploader';
+import PostList from './PostList';
+import MemoList from './MemoList';
 
 interface UserProfile {
   id: number;
   name: string;
   email: string;
   image: string | null;
+  header_image: string | null;
 }
 interface ProfileData {
   user: UserProfile;
-  posts: Post[];
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
@@ -2191,27 +2842,27 @@ export default function ProfilePage() {
   const [modalTitle, setModalTitle] = useState('');
   const [modalUsers, setModalUsers] = useState<FollowUser[]>([]);
   const [isModalLoading, setIsModalLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'memos'>('posts');
+
+  const fetchProfileData = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch(`/api/profile/${profileId}`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setProfileData(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isNaN(profileId)) {
       notFound();
       return;
     }
-    
-    const fetchProfileData = async () => {
-      try {
-        setIsLoading(true);
-        const res = await fetch(`/api/profile/${profileId}`);
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
-        setProfileData(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchProfileData();
   }, [profileId]);
 
@@ -2238,88 +2889,140 @@ export default function ProfilePage() {
     return notFound();
   }
 
-  const { user, posts, followerCount, followingCount, isFollowing } = profileData;
+  const { user, followerCount, followingCount, isFollowing } = profileData;
   const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
   const isOwnProfile = viewerId === user.id;
+
+  const tabStyle = "px-4 py-2 text-sm font-semibold border-b-2 transition-colors";
+  const activeTabStyle = "border-gray-800 text-gray-800";
+  const inactiveTabStyle = "border-transparent text-gray-500 hover:text-gray-700";
 
   return (
     <>
       <main className="max-w-4xl mx-auto p-4 sm:p-8">
-        <div className="bg-white p-6 sm:p-8 rounded-xl border border-gray-200 mb-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            
-            {isOwnProfile ? (
-              <ProfileImageUploader 
-                currentImageUrl={user.image}
-                onUploadComplete={() => router.refresh()}
-              />
-            ) : (
-              <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                <Image
-                  src={user.image || '/default-avatar.png'}
-                  alt={user.name}
-                  fill
-                  className="object-cover"
-                  sizes="96px"
+        <div className="bg-white rounded-xl border border-gray-200 mb-8">
+          {isOwnProfile ? (
+            <ProfileHeaderUploader 
+              currentImageUrl={user.header_image}
+              onUploadComplete={fetchProfileData}
+            />
+          ) : (
+            <div 
+              className="w-full h-48 bg-cover bg-center rounded-t-xl"
+              style={{ backgroundImage: `url(${user.header_image || '/default-header.png'})` }}
+            />
+          )}
+          
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 -mt-16 sm:-mt-12">
+              {isOwnProfile ? (
+                <ProfileImageUploader 
+                  currentImageUrl={user.image}
+                  onUploadComplete={fetchProfileData}
                 />
-              </div>
-            )}
-
-            <div className="flex-grow text-center sm:text-left w-full">
-              <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-              <p className="text-sm text-gray-500 mt-1">{user.email}</p>
-              <div className="flex justify-center sm:justify-start space-x-4 mt-3 text-sm">
-                <button onClick={() => handleOpenModal('followers')} className="text-gray-600 hover:text-gray-900">
-                  <span className="font-semibold text-gray-800">{followerCount}</span> Followers
-                </button>
-                <button onClick={() => handleOpenModal('following')} className="text-gray-600 hover:text-gray-900">
-                  <span className="font-semibold text-gray-800">{followingCount}</span> Following
-                </button>
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              {!isOwnProfile && viewerId && (
-                <FollowButton targetUserId={user.id} isInitiallyFollowing={isFollowing} />
+              ) : (
+                <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 border-4 border-white">
+                  <Image src={user.image || '/default-avatar.png'} alt={user.name} fill className="object-cover" sizes="96px" />
+                </div>
               )}
+
+              <div className="flex-grow text-center sm:text-left w-full pt-12 sm:pt-0">
+                <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+                <p className="text-sm text-gray-500 mt-1">{user.email}</p>
+                <div className="flex justify-center sm:justify-start space-x-4 mt-3 text-sm">
+                  <button onClick={() => handleOpenModal('followers')} className="text-gray-600 hover:text-gray-900"><span className="font-semibold text-gray-800">{followerCount}</span> Followers</button>
+                  <button onClick={() => handleOpenModal('following')} className="text-gray-600 hover:text-gray-900"><span className="font-semibold text-gray-800">{followingCount}</span> Following</button>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                {!isOwnProfile && viewerId && (
+                  <FollowButton targetUserId={user.id} isInitiallyFollowing={isFollowing} />
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <h2 className="text-xl font-bold text-gray-800 mb-6 px-2">Public Posts</h2>
-        {posts.length === 0 ? (
-          <div className="text-center bg-white p-8 rounded-xl border border-gray-200">
-            <p className="text-sm text-gray-600">This user has no public posts yet.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {posts.map((post) => (
-              <Link key={post.id} href={`/view/${post.id}`} className="group block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                <div className="relative aspect-square">
-                  <Image
-                    src={post.thumbnail_url}
-                    alt={post.title}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className={`object-cover transition-transform group-hover:scale-105 ${post.is_nsfw || post.is_thumbnail_blurred ? 'blur-md' : ''}`}
-                  />
-                  {post.is_nsfw && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-sm tracking-widest">NSFW</div>}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-base text-gray-800 truncate">{post.title}</h3>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+            <button onClick={() => setActiveTab('posts')} className={`${tabStyle} ${activeTab === 'posts' ? activeTabStyle : inactiveTabStyle}`}>Posts</button>
+            <button onClick={() => setActiveTab('memos')} className={`${tabStyle} ${activeTab === 'memos' ? activeTabStyle : inactiveTabStyle}`}>Memos</button>
+          </nav>
+        </div>
+
+        <div>
+          {activeTab === 'posts' ? <PostList userId={profileId} /> : <MemoList userId={profileId} />}
+        </div>
       </main>
-      <FollowListModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={modalTitle}
-        users={modalUsers}
-        isLoading={isModalLoading}
-      />
+      <FollowListModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={modalTitle} users={modalUsers} isLoading={isModalLoading} />
     </>
+  );
+}
+
+============================================================
+FILE: app/[locale]/profile/[userId]/PostList.tsx
+============================================================
+// app/[locale]/profile/[userId]/PostList.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import type { Post } from '@/types';
+
+export default function PostList({ userId }: { userId: number }) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`/api/profile/${userId}/posts`);
+        if (!res.ok) throw new Error('Failed to fetch posts');
+        const data = await res.json();
+        setPosts(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPosts();
+  }, [userId]);
+
+  if (isLoading) {
+    return <div className="py-10 text-center text-sm text-gray-500">Loading posts...</div>;
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="text-center bg-gray-50 p-8 rounded-lg border border-gray-200">
+        <p className="text-sm text-gray-600">This user has no public posts yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {posts.map((post) => (
+        <Link key={post.id} href={`/view/${post.id}`} className="group block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+          <div className="relative aspect-square">
+            <Image
+              src={post.thumbnail_url}
+              alt={post.title}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className={`object-cover transition-transform group-hover:scale-105 ${post.is_nsfw || post.is_thumbnail_blurred ? 'blur-md' : ''}`}
+            />
+            {post.is_nsfw && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-sm tracking-widest">NSFW</div>}
+          </div>
+          <div className="p-4">
+            <h3 className="font-semibold text-base text-gray-800 truncate">{post.title}</h3>
+          </div>
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -3518,8 +4221,11 @@ export default function Header({ tHeader, tLang }: { tHeader: any, tLang: any })
                     {tHeader.logout}
                   </button>
                 </div>
+                <Link href="/memo/new" className={linkStyle}>
+                  새 메모
+                </Link>
                 <Link href="/upload" className={ctaLinkStyle}>
-                  {tHeader.writePost}
+                  새 포스트
                 </Link>
               </>
             ) : (
@@ -3722,6 +4428,88 @@ export default function Notifications() {
 }
 
 ============================================================
+FILE: components/ProfileHeaderUploader.tsx
+============================================================
+// components/ProfileHeaderUploader.tsx
+'use client';
+
+import { useState, useRef, ChangeEvent } from 'react';
+import { Camera } from 'lucide-react';
+
+interface ProfileHeaderUploaderProps {
+  currentImageUrl: string | null;
+  onUploadComplete: () => void;
+}
+
+export default function ProfileHeaderUploader({
+  currentImageUrl,
+  onUploadComplete,
+}: ProfileHeaderUploaderProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const uploadData = await uploadResponse.json();
+      if (!uploadResponse.ok) throw new Error(uploadData.error || '이미지 업로드 실패');
+
+      const updateResponse = await fetch('/api/profile/update-header', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: uploadData.url }),
+      });
+      if (!updateResponse.ok) throw new Error('헤더 이미지 업데이트 실패');
+      
+      onUploadComplete();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div 
+      className="relative w-full h-48 bg-cover bg-center rounded-t-xl group"
+      style={{ backgroundImage: `url(${currentImageUrl || '/default-header.png'})` }}
+    >
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isLoading}
+        className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        {isLoading ? (
+          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        ) : (
+          <Camera size={24} />
+        )}
+      </button>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/png, image/jpeg, image/gif"
+        className="hidden"
+      />
+      {error && <p className="absolute bottom-2 left-2 text-xs text-red-300 bg-black/50 p-1 rounded">{error}</p>}
+    </div>
+  );
+}
+
+============================================================
 FILE: components/ProfileImageUploader.tsx
 ============================================================
 // components/ProfileImageUploader.tsx (새 파일)
@@ -3846,9 +4634,9 @@ export const authOptions: AuthOptions = {
           return null;
         }
         try {
-          // ▼▼▼ [수정] image 컬럼을 함께 조회합니다. ▼▼▼
+          // ▼▼▼ [수정] image, header_image 컬럼을 함께 조회합니다. ▼▼▼
           const result = await db.sql`
-            SELECT id, name, email, password, role, image FROM users WHERE email = ${credentials.email}
+            SELECT id, name, email, password, role, image, header_image FROM users WHERE email = ${credentials.email}
           `;
           const user = result.rows[0];
           if (user && await bcrypt.compare(credentials.password, user.password)) {
@@ -3857,7 +4645,8 @@ export const authOptions: AuthOptions = {
               name: user.name,
               email: user.email,
               role: user.role,
-              image: user.image, // ▼▼▼ [추가] image 정보를 반환 객체에 포함합니다. ▼▼▼
+              image: user.image,
+              header_image: user.header_image, // ▼▼▼ [추가] header_image 정보 포함 ▼▼▼
             };
           }
           return null;
@@ -3879,9 +4668,12 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        // ▼▼▼ [추가] user.image를 token.picture에 저장합니다. (next-auth 기본값) ▼▼▼
         if (user.image) {
             token.picture = user.image;
+        }
+        // ▼▼▼ [추가] user.header_image를 token에 저장합니다. ▼▼▼
+        if (user.header_image) {
+            token.header_image = user.header_image;
         }
       }
       return token;
@@ -3890,9 +4682,12 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
-        // ▼▼▼ [추가] token.picture를 session.user.image에 저장합니다. ▼▼▼
         if (token.picture) {
             session.user.image = token.picture;
+        }
+        // ▼▼▼ [추가] token.header_image를 session.user에 저장합니다. ▼▼▼
+        if (token.header_image) {
+            session.user.header_image = token.header_image;
         }
       }
       return session;
@@ -3927,7 +4722,6 @@ FILE: messages/en.json
     "welcome": "Welcome, {name}!",
     "myProfile": "My Profile",
     "myPosts": "My Posts",
-    "writePost": "Write",
     "logout": "Log Out",
     "login": "Log In",
     "signup": "Sign Up"
@@ -4034,7 +4828,6 @@ FILE: messages/ja.json
     "welcome": "{name}さん、ようこそ！",
     "myProfile": "マイプロフィール",
     "myPosts": "マイ投稿",
-    "writePost": "作成",
     "logout": "ログアウト",
     "login": "ログイン",
     "signup": "新規登録"
@@ -4141,7 +4934,6 @@ FILE: messages/ko.json
     "welcome": "환영합니다, {name}님",
     "myProfile": "내 프로필",
     "myPosts": "내 포스트",
-    "writePost": "글쓰기",
     "logout": "로그아웃",
     "login": "로그인",
     "signup": "회원가입"
@@ -4290,6 +5082,30 @@ async function addColumns() {
 addColumns();
 
 ============================================================
+FILE: scripts/add-header-image-column.js
+============================================================
+// scripts/add-header-image-column.js
+const { db } = require('@vercel/postgres');
+require('dotenv').config({ path: './.env.local' });
+
+async function addHeaderImageColumn() {
+  const client = await db.connect();
+  try {
+    // users 테이블에 header_image 컬럼이 없는 경우에만 추가합니다.
+    await client.sql`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS header_image VARCHAR(255);
+    `;
+    console.log('Column "header_image" added to "users" table successfully.');
+  } catch (error) {
+    console.error('Error adding column:', error);
+  } finally {
+    await client.release();
+  }
+}
+
+addHeaderImageColumn();
+
+============================================================
 FILE: scripts/add-og-font-column.js
 ============================================================
 // scripts/add-og-font-column.js
@@ -4312,6 +5128,36 @@ async function addColumn() {
 }
 
 addColumn();
+
+============================================================
+FILE: scripts/create-memos-table.js
+============================================================
+// scripts/create-memos-table.js
+const { db } = require('@vercel/postgres');
+require('dotenv').config({ path: './.env.local' });
+
+async function createMemosTable() {
+  const client = await db.connect();
+  try {
+    await client.sql`
+      CREATE TABLE IF NOT EXISTS memos (
+        id VARCHAR(21) PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        spoiler_icon VARCHAR(10) DEFAULT '🔑',
+        visibility VARCHAR(20) DEFAULT 'public',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    console.log('Table "memos" created successfully.');
+  } catch (error) {
+    console.error('Error creating memos table:', error);
+  } finally {
+    await client.release();
+  }
+}
+
+createMemosTable();
 
 ============================================================
 FILE: scripts/create-notifications-table.js
@@ -4395,8 +5241,20 @@ export interface Post {
   author_name?: string;
   letter_spacing?: string;
   line_height?: string;
-  // ▼▼▼ [추가] OG 이미지 폰트 속성 ▼▼▼
   og_font?: string;
+}
+
+export interface Memo {
+  id: string;
+  user_id: number;
+  content: string;
+  spoiler_icon: string;
+  visibility: string;
+  created_at: string;
+  author_name: string;
+  author_image: string | null;
+  // ▼▼▼ [추가] 저자의 헤더 이미지 정보를 타입에 추가합니다. ▼▼▼
+  author_header_image?: string | null;
 }
 
 ============================================================
@@ -4407,17 +5265,19 @@ FILE: types/next-auth.d.ts
 import NextAuth, { DefaultSession, DefaultUser } from 'next-auth';
 import { JWT, DefaultJWT } from 'next-auth/jwt';
 
-// role과 image를 포함하도록 기존 타입을 확장합니다.
+// role, image, header_image를 포함하도록 기존 타입을 확장합니다.
 declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
       role: string;
+      header_image?: string | null;
     } & DefaultSession['user']; // name, email, image 등 기본 속성 포함
   }
 
   interface User extends DefaultUser {
     role: string;
+    header_image?: string | null;
   }
 }
 
@@ -4425,6 +5285,7 @@ declare module 'next-auth/jwt' {
   interface JWT extends DefaultJWT {
     role: string;
     id: string;
+    header_image?: string | null;
   }
 }
 
