@@ -5,8 +5,8 @@ import { NextRequest } from 'next/server';
 export const runtime = 'edge';
 
 function parseContent(content: string, spoilerIcon: string) {
-  // ▼▼▼ [수정] 이미 잘려서 들어온 텍스트를 그대로 사용하도록 수정합니다. ▼▼▼
-  const parts = content.split(/(\|\|.*?\|\|)/g).filter(Boolean);
+  const trimmedContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
+  const parts = trimmedContent.split(/(\|\|.*?\|\|)/g).filter(Boolean);
   
   return parts.map(part => {
     if (part.startsWith('||') && part.endsWith('||')) {
@@ -92,8 +92,9 @@ export async function GET(req: NextRequest) {
           </div>
 
           {/* 프로필 사진 (두 컬럼 위에 겹치도록 절대 위치) */}
-          {/* @ts-ignore */}
+          {/* ▼▼▼ [핵심 수정] img 태그 내부에 @ts-ignore를 정확히 위치시켰습니다. ▼▼▼ */}
           <img
+            // @ts-ignore
             src={profileImageBuffer}
             tw="absolute rounded-full w-40 h-40 border-8 border-white"
             style={{
