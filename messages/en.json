@@ -98,5 +98,20 @@
     "signingUp": "Signing up...",
     "hasAccount": "Already have an account?",
     "loginLink": "Log in"
+  },
+  "MemoPage": {
+    "title": "New Memo",
+    "contentLabel": "Content",
+    "contentPlaceholder": "Enter memo content. Wrap text with || for spoilers.",
+    "spoilerIconLabel": "Spoiler Icon",
+    "iconKey": "🔑 Key",
+    "icon18": "🔞 18+",
+    "iconFire": "🔥 Hot",
+    "visibilityLabel": "Visibility",
+    "visibilityPublic": "Public",
+    "visibilityFollowers": "Followers Only",
+    "createButton": "Create Memo Link",
+    "creatingButton": "Creating...",
+    "successMessage": "✅ Success! Generated link:"
   }
 }

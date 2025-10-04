@@ -52,13 +52,12 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     return new URL(url, baseUrl).toString();
   };
 
-  // ▼▼▼ [핵심 수정] content 파라미터의 길이를 200자로 제한합니다. ▼▼▼
   const ogContent = memo.content.length > 200 ? memo.content.substring(0, 200) + '...' : memo.content;
 
   ogImageUrl.searchParams.set('userName', memo.author_name);
   ogImageUrl.searchParams.set('userImage', getAbsoluteUrl(memo.author_image));
   ogImageUrl.searchParams.set('userHeaderImage', getAbsoluteUrl(memo.author_header_image));
-  ogImageUrl.searchParams.set('content', ogContent); // 잘린 내용을 전달
+  ogImageUrl.searchParams.set('content', ogContent);
   ogImageUrl.searchParams.set('spoilerIcon', memo.spoiler_icon);
 
   return {
@@ -79,7 +78,6 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-// ... 파일의 나머지 부분은 그대로 둡니다 ...
 async function checkMemoPermission(memo: Memo, viewerId: number | null): Promise<boolean> {
   const authorId = memo.user_id;
   if (memo.visibility === 'public' || !memo.visibility) {
@@ -106,9 +104,9 @@ export default async function ViewMemoPage({ params }: { params: { id: string } 
   const hasPermission = await checkMemoPermission(memo, viewerId);
   if (!hasPermission) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-        <div className="w-full max-w-md p-8 text-center space-y-4 bg-white rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-gray-800">접근 권한 없음</h2>
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-md p-8 text-center space-y-4 bg-white border border-black">
+          <h2 className="text-2xl font-bold text-gray-800">ACCESS DENIED</h2>
           <p className="text-gray-600">이 메모를 볼 수 있는 권한이 없습니다.</p>
         </div>
       </main>
@@ -116,7 +114,7 @@ export default async function ViewMemoPage({ params }: { params: { id: string } 
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 py-8 px-4 flex items-center justify-center">
+    <main className="min-h-screen p-4 sm:p-8 flex items-center justify-center main-bg">
       <MemoContent memo={memo} />
     </main>
   );

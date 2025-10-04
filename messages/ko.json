@@ -98,5 +98,20 @@
     "signingUp": "가입 중...",
     "hasAccount": "이미 계정이 있으신가요?",
     "loginLink": "로그인"
+  },
+  "MemoPage": {
+    "title": "새 메모 작성",
+    "contentLabel": "내용",
+    "contentPlaceholder": "메모 내용을 입력하세요. 스포일러 처리를 하려면 ||텍스트|| 와 같이 두 개의 파이프 문자로 감싸주세요.",
+    "spoilerIconLabel": "스포일러 아이콘",
+    "iconKey": "🔑 열쇠",
+    "icon18": "🔞 18금",
+    "iconFire": "🔥 화제",
+    "visibilityLabel": "공개 범위",
+    "visibilityPublic": "전체 공개",
+    "visibilityFollowers": "팔로워만",
+    "createButton": "메모 링크 생성",
+    "creatingButton": "생성 중...",
+    "successMessage": "✅ 성공! 생성된 링크:"
   }
 }

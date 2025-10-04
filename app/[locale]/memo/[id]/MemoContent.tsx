@@ -1,10 +1,13 @@
-// app/[locale]/memo/[id]/MemoContent.tsx
+// app/[locale]/memo/[id]/MemoContent.tsx (덮어쓰기)
 'use client';
 
-import { useState, useEffect, MouseEvent } from 'react';
+import { useState, useEffect } from 'react';
 import type { Memo } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
+import { useRouter, useParams } from 'next/navigation'; // useParams 추가
+import { Trash2 } from 'lucide-react';
 
 function SpoilerContent({ text }: { text: string }) {
   const [revealed, setRevealed] = useState(false);
@@ -21,40 +24,86 @@ function SpoilerContent({ text }: { text: string }) {
 export default function MemoContent({ memo }: { memo: Memo }) {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => { setIsClient(true); }, []);
+  
+  const { data: session } = useSession();
+  const router = useRouter();
+  const params = useParams(); // params 훅 사용
+  const locale = params.locale; // locale 가져오기
+  const isAuthor = session && session.user.id === String(memo.user_id);
 
   const parsedContent = memo.content.split(/(\|\|.*?\|\|)/g).filter(Boolean);
 
+  const handleDelete = async () => {
+    if (!confirm('정말 이 메모를 삭제하시겠습니까?')) return;
+    try {
+      const res = await fetch(`/api/memos/${memo.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('삭제 실패');
+      alert('메모가 삭제되었습니다.');
+      // ▼▼▼ [수정] router.push에 locale 추가 ▼▼▼
+      router.push(`/${locale}/profile/${memo.user_id}`);
+    } catch (error) {
+      console.error(error);
+      alert('메모 삭제에 실패했습니다.');
+    }
+  };
+
   return (
-    <div className="w-full max-w-2xl bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
-      <div className="flex items-center mb-6 not-prose">
-        <Link href={`/profile/${memo.user_id}`} className="flex items-center gap-3 group">
-          <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-            <Image
-              src={memo.author_image || '/default-avatar.png'}
-              alt={memo.author_name}
-              fill
-              className="object-cover"
-              sizes="48px"
-            />
-          </div>
+    <div className="w-full max-w-3xl content-card rounded-lg overflow-hidden">
+      <div className="p-6 sm:p-8">
+        <header className="flex items-start justify-between border-b border-gray-200/80 pb-4 mb-6">
           <div>
-            <p className="font-bold text-gray-800 group-hover:underline">{memo.author_name}</p>
-            <p className="text-xs text-gray-500">{new Date(memo.created_at).toLocaleString()}</p>
+            <p className="font-mono text-xs text-gray-500">MEMO / PRIVATE SHARING</p>
+            <div className="flex items-center gap-3 mt-3">
+              {/* ▼▼▼ [수정] Link에 locale 추가 ▼▼▼ */}
+              <Link href={`/${locale}/profile/${memo.user_id}`} className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200 border border-gray-300">
+                <Image
+                  src={memo.author_image || '/default-avatar.png'}
+                  alt={memo.author_name}
+                  fill
+                  className="object-cover"
+                  sizes="40px"
+                />
+              </Link>
+              <div>
+                <p className="font-semibold text-sm">
+                  {/* ▼▼▼ [수정] Link에 locale 추가 ▼▼▼ */}
+                  <Link href={`/${locale}/profile/${memo.user_id}`} className="text-black hover:text-blue-600 transition-colors">
+                    {memo.author_name}
+                  </Link>
+                </p>
+                <p className="font-mono text-xs text-gray-500">{new Date(memo.created_at).toLocaleString()}</p>
+              </div>
+            </div>
           </div>
-        </Link>
-      </div>
-      
-      <div className="prose prose-lg max-w-none whitespace-pre-wrap break-words">
-        {isClient ? (
-          parsedContent.map((part, index) => {
-            if (part.startsWith('||') && part.endsWith('||')) {
-              return <SpoilerContent key={index} text={part.slice(2, -2)} />;
-            }
-            return part;
-          })
-        ) : (
-          <p>Loading content...</p>
-        )}
+          <div className="text-right">
+            {isAuthor && (
+              <button onClick={handleDelete} className="p-2 text-gray-500 hover:text-red-600" title="삭제">
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        </header>
+        
+        <div className="text-base text-gray-800 min-h-[15rem] whitespace-pre-wrap break-words leading-relaxed font-sans">
+          {isClient ? (
+            parsedContent.map((part, index) => {
+              if (part.startsWith('||') && part.endsWith('||')) {
+                return <SpoilerContent key={index} text={part.slice(2, -2)} />;
+              }
+              return part;
+            })
+          ) : (
+            <div className="space-y-3 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            </div>
+          )}
+        </div>
+
+        <footer className="mt-8 pt-4 border-t border-gray-200/80 text-center font-mono text-xs text-gray-400">
+          Generated by private-media-sharer.vercel.app
+        </footer>
       </div>
     </div>
   );

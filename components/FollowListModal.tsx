@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import FollowButton from './FollowButton';
 import { X } from 'lucide-react';
+import { useParams } from 'next/navigation'; // useParams 추가
 
 export interface FollowUser {
   id: number;
@@ -28,6 +29,9 @@ export default function FollowListModal({
   users,
   isLoading,
 }: FollowListModalProps) {
+  const params = useParams(); // params 훅 사용
+  const locale = params.locale; // locale 가져오기
+
   if (!isOpen) return null;
 
   return (
@@ -48,7 +52,8 @@ export default function FollowListModal({
             <ul className="divide-y divide-gray-100">
               {users.map((user) => (
                 <li key={user.id} className="flex items-center justify-between p-2">
-                  <Link href={`/profile/${user.id}`} className="flex items-center gap-3 group" onClick={onClose}>
+                  {/* ▼▼▼ [수정] Link에 locale 추가 ▼▼▼ */}
+                  <Link href={`/${locale}/profile/${user.id}`} className="flex items-center gap-3 group" onClick={onClose}>
                     <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
                       <Image
                         src={user.image || '/default-avatar.png'}

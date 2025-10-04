@@ -77,16 +77,16 @@ export default async function ViewPage({ params }: { params: { id: string } }) {
   const hasPermission = await checkPermission(post, viewerId);
   if (!hasPermission) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-        <div className="w-full max-w-md p-8 text-center space-y-4 bg-white rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-gray-800">접근 권한 없음</h2>
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-md p-8 text-center space-y-4 bg-white border border-black">
+          <h2 className="text-2xl font-bold text-gray-800">ACCESS DENIED</h2>
           <p className="text-gray-600">이 콘텐츠를 볼 수 있는 권한이 없습니다. 작성자를 팔로우하거나 로그인해야 할 수 있습니다.</p>
         </div>
       </main>
     );
   }
   return (
-    <main className={`flex min-h-screen items-center justify-center bg-gray-100 py-8 px-4 ${post.font_family || 'font-pretendard'}`}>
+    <main className={`min-h-screen ${post.font_family || 'font-pretendard'}`}>
       {post.password && post.visibility === 'password' ? (<PasswordProtect post={post} />) : (<PostContent post={post} />)}
     </main>
   );

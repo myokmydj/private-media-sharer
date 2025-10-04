@@ -98,5 +98,20 @@
     "signingUp": "登録中...",
     "hasAccount": "すでにアカウントをお持ちですか？",
     "loginLink": "ログイン"
+  },
+  "MemoPage": {
+    "title": "新規メモ",
+    "contentLabel": "内容",
+    "contentPlaceholder": "メモの内容を入力してください。ネタバレは||で囲んでください。",
+    "spoilerIconLabel": "ネタバレ アイコン",
+    "iconKey": "🔑 鍵",
+    "icon18": "🔞 18禁",
+    "iconFire": "🔥 話題",
+    "visibilityLabel": "公開範囲",
+    "visibilityPublic": "全体公開",
+    "visibilityFollowers": "フォロワーのみ",
+    "createButton": "メモリンクを作成",
+    "creatingButton": "作成中...",
+    "successMessage": "✅ 成功！生成されたリンク："
   }
 }

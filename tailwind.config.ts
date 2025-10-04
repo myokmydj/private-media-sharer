@@ -11,27 +11,36 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // ▼▼▼ 기본 sans 폰트를 Freesentation으로 변경 ▼▼▼
         sans: ['Freesentation', 'sans-serif'], 
-        // ▼▼▼ 본문에서 선택 가능한 폰트 목록 ▼▼▼
         pretendard: ['Pretendard', 'sans-serif'],
         bookkmyungjo: ['BookkMyungjo', 'serif'],
         freesentation: ['Freesentation', 'sans-serif'],
         paperozi: ['Paperozi', 'sans-serif'],
+        // ▼▼▼ UI 개편을 위한 폰트 추가 ▼▼▼
+        mono: ['Roboto Mono', 'monospace'],
+        serif: ['Nanum Myeongjo', 'serif'],
       },
-      // ▼▼▼ Freesentation 폰트 두께를 직접 매핑 ▼▼▼
       fontWeight: {
         medium: '500',
         black: '900',
       },
+      // ▼▼▼ UI 개편을 위한 색상 추가 ▼▼▼
+      colors: {
+        brand: {
+          red: '#FF4848',
+          blue: '#4A8CFF',
+        }
+      }
     },
+    // ▼▼▼ 기본 색상 팔레트 정리 ▼▼▼
     colors: {
       transparent: 'transparent',
       current: 'currentColor',
       black: colors.black,
       white: colors.white,
-      gray: colors.gray,
+      gray: colors.neutral, // 좀 더 부드러운 회색 계열로 변경
       red: colors.red,
+      blue: colors.blue,
     },
   },
   plugins: [

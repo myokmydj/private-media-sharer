@@ -22,15 +22,13 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className="font-pretendard">
+      <body className="font-pretendard bg-gray-100">
         <AuthProvider>
-          {/* ▼▼▼ 바로 이 부분을 수정합니다! ▼▼▼ */}
           <Header
             tHeader={dictionary.Header}
             tLang={dictionary.LanguageSwitcher}
           />
-          {/* ▲▲▲ 여기까지 수정 ▲▲▲ */}
-          <main>{children}</main>
+          <main className="py-8 px-4">{children}</main>
         </AuthProvider>
       </body>
     </html>

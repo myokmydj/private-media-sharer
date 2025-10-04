@@ -197,6 +197,10 @@
     font-display: swap;
 }
 
+/* ▼▼▼ UI 개편을 위한 폰트 추가 ▼▼▼ */
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Roboto+Mono:wght@400;700&display=swap');
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -204,18 +208,62 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-800 font-freesentation font-medium;
+    /* ▼▼▼ 기본 스타일 변경 ▼▼▼ */
+    @apply bg-gray-50 text-gray-800 font-sans font-normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  /* strong 태그나 font-bold 클래스에 weight 900을 적용 */
+  /* ▼▼▼ UI 개편을 위한 기본 요소 스타일 재정의 ▼▼▼ */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+  /* ▼▼▼ [수정] 순환 종속성 오류 해결 ▼▼▼ */
+  /* strong 태그나 font-bold 클래스에 weight 700을 적용 */
   strong, b, .font-bold {
-    @apply font-black;
+    font-weight: 700; /* @apply 대신 직접 CSS 속성 사용 */
   }
 }
+
+/* ▼▼▼ UI 개편을 위한 커스텀 클래스 추가 ▼▼▼ */
+@layer components {
+  .main-bg {
+    @apply bg-gray-100;
+    background-image: radial-gradient(circle at 1px 1px, #E5E7EB 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+  .content-card {
+    @apply bg-white/60 backdrop-blur-md border border-gray-200/80 shadow-lg transition-all duration-300 rounded-lg;
+  }
+  .content-card:hover {
+    @apply shadow-xl border-gray-300;
+  }
+  .dashed-border-box {
+    @apply border border-dashed border-gray-400 p-4;
+  }
+  .solid-border-box {
+    @apply border border-black p-4;
+  }
+  .input-style {
+    @apply block w-full bg-transparent text-sm px-3 py-2 border border-gray-400 focus:outline-none focus:ring-1 focus:ring-black;
+  }
+  .btn {
+    @apply px-4 py-2 text-sm font-semibold transition-colors duration-200;
+  }
+  .btn-primary {
+    @apply btn bg-black text-white hover:bg-gray-800;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-black border border-black hover:bg-gray-100;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
+  }
+}
+
 
 .spoiler {
   background-color: #333;
   color: transparent;
-  border-radius: 4px;
   padding: 0 4px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;

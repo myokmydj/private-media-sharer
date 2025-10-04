@@ -5,10 +5,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Post } from '@/types';
+import { useParams } from 'next/navigation'; // useParams 추가
 
 export default function PostList({ userId }: { userId: number }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const params = useParams(); // params 훅 사용
+  const locale = params.locale; // locale 가져오기
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -42,7 +45,8 @@ export default function PostList({ userId }: { userId: number }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {posts.map((post) => (
-        <Link key={post.id} href={`/view/${post.id}`} className="group block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+        // ▼▼▼ [수정] Link에 locale 추가 ▼▼▼
+        <Link key={post.id} href={`/${locale}/view/${post.id}`} className="group block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
           <div className="relative aspect-square">
             <Image
               src={post.thumbnail_url}

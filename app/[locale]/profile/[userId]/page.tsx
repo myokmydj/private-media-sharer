@@ -89,60 +89,61 @@ export default function ProfilePage() {
   const viewerId = session?.user?.id ? parseInt(session.user.id, 10) : null;
   const isOwnProfile = viewerId === user.id;
 
-  const tabStyle = "px-4 py-2 text-sm font-semibold border-b-2 transition-colors";
-  const activeTabStyle = "border-gray-800 text-gray-800";
-  const inactiveTabStyle = "border-transparent text-gray-500 hover:text-gray-700";
+  const tabStyle = "px-1 pb-2 text-sm font-semibold border-b-2 transition-colors";
+  const activeTabStyle = "border-black text-black";
+  const inactiveTabStyle = "border-transparent text-gray-500 hover:text-black";
 
   return (
     <>
-      <main className="max-w-4xl mx-auto p-4 sm:p-8">
-        <div className="bg-white rounded-xl border border-gray-200 mb-8">
-          {isOwnProfile ? (
-            <ProfileHeaderUploader 
-              currentImageUrl={user.header_image}
-              onUploadComplete={fetchProfileData}
-            />
-          ) : (
-            <div 
-              className="w-full h-48 bg-cover bg-center rounded-t-xl"
-              style={{ backgroundImage: `url(${user.header_image || '/default-header.png'})` }}
-            />
-          )}
-          
-          <div className="p-6">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 -mt-16 sm:-mt-12">
+      <main className="max-w-4xl mx-auto">
+        <div className="bg-white border border-black mb-8">
+          <div className="relative">
+            {isOwnProfile ? (
+              <ProfileHeaderUploader 
+                currentImageUrl={user.header_image}
+                onUploadComplete={fetchProfileData}
+              />
+            ) : (
+              <div 
+                className="w-full h-48 bg-cover bg-center"
+                style={{ backgroundImage: `url(${user.header_image || '/default-header.png'})` }}
+              />
+            )}
+            <div className="absolute -bottom-12 left-6">
               {isOwnProfile ? (
                 <ProfileImageUploader 
                   currentImageUrl={user.image}
                   onUploadComplete={fetchProfileData}
                 />
               ) : (
-                <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 border-4 border-white">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden bg-gray-200 border-4 border-white">
                   <Image src={user.image || '/default-avatar.png'} alt={user.name} fill className="object-cover" sizes="96px" />
                 </div>
               )}
-
-              <div className="flex-grow text-center sm:text-left w-full pt-12 sm:pt-0">
-                <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-                <p className="text-sm text-gray-500 mt-1">{user.email}</p>
-                <div className="flex justify-center sm:justify-start space-x-4 mt-3 text-sm">
-                  <button onClick={() => handleOpenModal('followers')} className="text-gray-600 hover:text-gray-900"><span className="font-semibold text-gray-800">{followerCount}</span> Followers</button>
-                  <button onClick={() => handleOpenModal('following')} className="text-gray-600 hover:text-gray-900"><span className="font-semibold text-gray-800">{followingCount}</span> Following</button>
-                </div>
-              </div>
-              <div className="flex-shrink-0">
-                {!isOwnProfile && viewerId && (
-                  <FollowButton targetUserId={user.id} isInitiallyFollowing={isFollowing} />
-                )}
+            </div>
+          </div>
+          
+          <div className="p-6">
+            <div className="flex justify-end mb-4">
+              {!isOwnProfile && viewerId && (
+                <FollowButton targetUserId={user.id} isInitiallyFollowing={isFollowing} />
+              )}
+            </div>
+            <div className="pt-8">
+              <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+              <p className="text-sm text-gray-500 mt-1 font-mono">{user.email}</p>
+              <div className="flex space-x-4 mt-3 text-sm font-mono">
+                <button onClick={() => handleOpenModal('followers')} className="text-gray-600 hover:text-black"><span className="font-semibold text-black">{followerCount}</span> Followers</button>
+                <button onClick={() => handleOpenModal('following')} className="text-gray-600 hover:text-black"><span className="font-semibold text-black">{followingCount}</span> Following</button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-4" aria-label="Tabs">
-            <button onClick={() => setActiveTab('posts')} className={`${tabStyle} ${activeTab === 'posts' ? activeTabStyle : inactiveTabStyle}`}>Posts</button>
-            <button onClick={() => setActiveTab('memos')} className={`${tabStyle} ${activeTab === 'memos' ? activeTabStyle : inactiveTabStyle}`}>Memos</button>
+        <div className="border-b border-gray-300 mb-6">
+          <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+            <button onClick={() => setActiveTab('posts')} className={`${tabStyle} ${activeTab === 'posts' ? activeTabStyle : inactiveTabStyle}`}>POSTS</button>
+            <button onClick={() => setActiveTab('memos')} className={`${tabStyle} ${activeTab === 'memos' ? activeTabStyle : inactiveTabStyle}`}>MEMOS</button>
           </nav>
         </div>
 

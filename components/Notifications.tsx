@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Bell } from 'lucide-react';
+import { useParams } from 'next/navigation'; // useParams 추가
 
 interface Notification {
   id: number;
@@ -21,6 +22,8 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const params = useParams(); // params 훅 사용
+  const locale = params.locale; // locale 가져오기
 
   useEffect(() => {
     if (session) {
@@ -86,8 +89,9 @@ export default function Notifications() {
             {notifications.length > 0 ? (
               notifications.map((notif) => (
                 <li key={notif.id}>
+                  {/* ▼▼▼ [수정] Link에 locale 추가 ▼▼▼ */}
                   <Link
-                    href={`/profile/${notif.actor_id}`}
+                    href={`/${locale}/profile/${notif.actor_id}`}
                     onClick={() => setIsOpen(false)}
                     className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100"
                   >
