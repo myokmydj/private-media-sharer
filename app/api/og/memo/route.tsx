@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     const userName = searchParams.get('userName');
     const userImage = searchParams.get('userImage');
-    // ▼▼▼ [수정] search_params -> searchParams 오타 수정 ▼▼▼
+    // ▼▼▼ [핵심 수정] 'search_params' 오타를 'searchParams'로 바로잡았습니다. ▼▼▼
     const userHeaderImage = searchParams.get('userHeaderImage');
     const content = searchParams.get('content') || '';
     const spoilerIcon = searchParams.get('spoilerIcon') || '🔑';
@@ -93,9 +93,9 @@ export async function GET(req: NextRequest) {
           </div>
 
           {/* 프로필 사진 (두 컬럼 위에 겹치도록 절대 위치) */}
-          {/* ▼▼▼ [수정] 타입 오류를 무시하도록 @ts-ignore 주석 추가 ▼▼▼ */}
-          {/* @ts-ignore */}
+          {/* @ts-ignore 주석이 이 img 태그에 적용되어 타입 오류를 막습니다. */}
           <img
+            // @ts-ignore
             src={profileImageBuffer}
             tw="absolute rounded-full w-40 h-40 border-8 border-white"
             style={{
