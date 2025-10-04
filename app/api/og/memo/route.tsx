@@ -92,14 +92,14 @@ export async function GET(req: NextRequest) {
           </div>
 
           {/* 프로필 사진 (두 컬럼 위에 겹치도록 절대 위치) */}
-          {/* ▼▼▼ [핵심 수정] img 태그 내부에 @ts-ignore를 정확히 위치시켰습니다. ▼▼▼ */}
+          {/* @ts-ignore */}
           <img
-            // @ts-ignore
             src={profileImageBuffer}
             tw="absolute rounded-full w-40 h-40 border-8 border-white"
             style={{
               top: '50%',
-              left: 'calc(100% * 2/3)',
+              // ▼▼▼ [핵심 수정] calc() 대신 정적 픽셀 값(800px)을 사용합니다. ▼▼▼
+              left: '800px',
               transform: 'translate(-50%, -50%)',
               objectFit: 'cover'
             }}
