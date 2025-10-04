@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
 
     const userName = searchParams.get('userName');
     const userImage = searchParams.get('userImage');
+    // ▼▼▼ [수정] search_params -> searchParams 오타 수정 ▼▼▼
     const userHeaderImage = searchParams.get('userHeaderImage');
     const content = searchParams.get('content') || '';
     const spoilerIcon = searchParams.get('spoilerIcon') || '🔑';
@@ -68,7 +69,6 @@ export async function GET(req: NextRequest) {
 
     return new ImageResponse(
       (
-        // ▼▼▼ [수정] 전체 레이아웃 구조 변경 ▼▼▼
         <div tw="flex w-full h-full bg-white" style={{ fontFamily: 'Freesentation' }}>
           {/* 왼쪽 컬럼 (본문) */}
           <div tw="w-2/3 h-full flex flex-col justify-center bg-neutral-900 p-16">
@@ -93,19 +93,19 @@ export async function GET(req: NextRequest) {
           </div>
 
           {/* 프로필 사진 (두 컬럼 위에 겹치도록 절대 위치) */}
+          {/* ▼▼▼ [수정] 타입 오류를 무시하도록 @ts-ignore 주석 추가 ▼▼▼ */}
           {/* @ts-ignore */}
           <img
             src={profileImageBuffer}
             tw="absolute rounded-full w-40 h-40 border-8 border-white"
             style={{
               top: '50%',
-              left: 'calc(100% * 2/3)', // 왼쪽 컬럼 너비(2/3) 위치에 배치
-              transform: 'translate(-50%, -50%)', // 이미지의 중심으로 위치 조정
+              left: 'calc(100% * 2/3)',
+              transform: 'translate(-50%, -50%)',
               objectFit: 'cover'
             }}
           />
         </div>
-        // ▲▲▲ 여기까지 수정 ▲▲▲
       ),
       {
         width: 1200,
