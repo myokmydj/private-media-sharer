@@ -45,13 +45,19 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${process.env.VERCEL_URL}`;
   const ogImageUrl = new URL(`${baseUrl}/api/og/memo`);
   
-  // ▼▼▼ [핵심 변경] userId 대신 필요한 모든 정보를 URL 파라미터로 직접 전달합니다. ▼▼▼
+  // ▼▼▼ [수정] 이미지 URL이 상대 경로일 경우를 대비해 절대 경로로 만들어줍니다. ▼▼▼
+  const getAbsoluteUrl = (url: string | null | undefined) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return new URL(url, baseUrl).toString();
+  };
+
   ogImageUrl.searchParams.set('userName', memo.author_name);
-  ogImageUrl.searchParams.set('userImage', memo.author_image || '');
-  ogImageUrl.searchParams.set('userHeaderImage', memo.author_header_image || '');
+  ogImageUrl.searchParams.set('userImage', getAbsoluteUrl(memo.author_image));
+  ogImageUrl.searchParams.set('userHeaderImage', getAbsoluteUrl(memo.author_header_image));
   ogImageUrl.searchParams.set('content', memo.content);
   ogImageUrl.searchParams.set('spoilerIcon', memo.spoiler_icon);
-  // ▲▲▲ 이 부분이 올바르게 적용되어야 합니다. ▲▲▲
+  // ▲▲▲ 여기까지 수정 ▲▲▲
 
   return {
     title: `${memo.author_name}님의 메모`,

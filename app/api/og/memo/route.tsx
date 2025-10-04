@@ -44,11 +44,9 @@ async function getImageBuffer(url: string | null, defaultImagePath: string, base
 
 export async function GET(req: NextRequest) {
   try {
-    // ▼▼▼ [수정] req 객체에서 직접 nextUrl을 가져오도록 수정합니다. ▼▼▼
     const { nextUrl } = req;
     const searchParams = nextUrl.searchParams;
     const baseUrl = nextUrl.origin;
-    // ▲▲▲ 여기까지 수정 ▲▲▲
 
     const userName = searchParams.get('userName');
     const userImage = searchParams.get('userImage');
@@ -70,24 +68,44 @@ export async function GET(req: NextRequest) {
 
     return new ImageResponse(
       (
-        <div tw="flex flex-col w-full h-full bg-neutral-900" style={{ fontFamily: 'Freesentation' }}>
-          <div tw="w-full h-[315px] flex">
-            {/* @ts-ignore */}
-            <img src={headerImageBuffer} tw="w-full h-full object-cover" />
-          </div>
-          <div tw="flex flex-col flex-grow p-16 pt-0">
-            <div tw="flex items-center -mt-16">
-              {/* @ts-ignore */}
-              <img src={profileImageBuffer} tw="w-32 h-32 rounded-full border-8 border-neutral-900" />
-              <span tw="ml-6 text-5xl text-white font-bold">{userName}</span>
-            </div>
-            <div tw="mt-10 text-4xl text-neutral-300 flex flex-wrap" style={{ lineHeight: 1.5 }}>
+        // ▼▼▼ [수정] 전체 레이아웃 구조 변경 ▼▼▼
+        <div tw="flex w-full h-full bg-white" style={{ fontFamily: 'Freesentation' }}>
+          {/* 왼쪽 컬럼 (본문) */}
+          <div tw="w-2/3 h-full flex flex-col justify-center bg-neutral-900 p-16">
+            <div tw="text-4xl text-neutral-300 flex flex-wrap" style={{ lineHeight: 1.6 }}>
               {processedContent.map((part, i) => (
                 <span key={i} tw={part.isSpoiler ? 'text-5xl' : ''}>{part.text}</span>
               ))}
             </div>
           </div>
+
+          {/* 오른쪽 컬럼 (헤더, 닉네임) */}
+          <div tw="w-1/3 h-full flex flex-col">
+            {/* 헤더 이미지 영역 */}
+            <div tw="w-full h-1/2 flex">
+              {/* @ts-ignore */}
+              <img src={headerImageBuffer} tw="w-full h-full" style={{ objectFit: 'cover' }} />
+            </div>
+            {/* 닉네임 영역 */}
+            <div tw="w-full h-1/2 flex items-center justify-center">
+              <span tw="text-5xl font-bold text-neutral-800">{userName}</span>
+            </div>
+          </div>
+
+          {/* 프로필 사진 (두 컬럼 위에 겹치도록 절대 위치) */}
+          {/* @ts-ignore */}
+          <img
+            src={profileImageBuffer}
+            tw="absolute rounded-full w-40 h-40 border-8 border-white"
+            style={{
+              top: '50%',
+              left: 'calc(100% * 2/3)', // 왼쪽 컬럼 너비(2/3) 위치에 배치
+              transform: 'translate(-50%, -50%)', // 이미지의 중심으로 위치 조정
+              objectFit: 'cover'
+            }}
+          />
         </div>
+        // ▲▲▲ 여기까지 수정 ▲▲▲
       ),
       {
         width: 1200,
